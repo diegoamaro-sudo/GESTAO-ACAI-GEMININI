@@ -31,41 +31,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchConfig = useCallback(async (userId: string) => {
-    const { data } = await supabase
-      .from('configuracoes_usuario')
-      .select('nome_loja, limite_mei, logo_url')
-      .eq('user_id', userId)
-      .single();
-    if (data) setConfig(data);
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes_usuario')
+        .select('nome_loja, limite_mei, logo_url')
+        .eq('user_id', userId)
+        .single();
+      if (error) throw error;
+      if (data) setConfig(data);
+    } catch (error) {
+      console.error("Erro ao buscar configurações do usuário:", error);
+    }
   }, []);
 
   useEffect(() => {
-    const initializeSession = async () => {
+    setLoading(true);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         const currentUser = session?.user ?? null;
         setUser(currentUser);
         if (currentUser) {
           await fetchConfig(currentUser.id);
+        } else {
+          setConfig(null);
         }
       } catch (error) {
-        console.error("Erro ao inicializar a sessão:", error);
+        console.error("Erro no manipulador onAuthStateChange:", error);
       } finally {
         setLoading(false);
-      }
-    };
-
-    initializeSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchConfig(currentUser.id);
-      } else {
-        setConfig(null);
       }
     });
 
