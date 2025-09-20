@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { showSuccess, showError } from '@/utils/toast';
 import { CustoItemDialog, CustoItem } from './CustoItemDialog';
 import { PlusCircle, Trash2, Edit } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 const formSchema = z.object({
   nome: z.string().min(2, { message: 'O nome é obrigatório.' }),
@@ -47,7 +48,7 @@ export const ComposicaoDialog = ({ open, onOpenChange, onSuccess, composicao }: 
   useEffect(() => {
     const fetchCustoItens = async () => {
       if (composicao) {
-        form.reset({ nome: composicao.nome, imagem_url: composicao.imagem_url });
+        form.reset({ nome: composicao.nome, imagem_url: composicao.imagem_url || '' });
         const { data } = await supabase.from('custos_produtos').select('*').eq('produto_id', composicao.id);
         setCustoItens(data || []);
       } else {
@@ -64,7 +65,6 @@ export const ComposicaoDialog = ({ open, onOpenChange, onSuccess, composicao }: 
       if (existing) {
         return prev.map(i => i.id === item.id ? item : i);
       }
-      // Assign a temporary client-side ID for new items
       return [...prev, { ...item, id: `temp-${Date.now()}` }];
     });
     setSelectedCustoItem(null);
@@ -92,7 +92,6 @@ export const ComposicaoDialog = ({ open, onOpenChange, onSuccess, composicao }: 
       custo_total_calculado: custoTotal,
     };
 
-    // Upsert the main product
     let produtoId = composicao?.id;
     if (composicao) {
       const { error } = await supabase.from('produtos_fornecedores').update(composicaoData).eq('id', composicao.id);
@@ -105,7 +104,6 @@ export const ComposicaoDialog = ({ open, onOpenChange, onSuccess, composicao }: 
 
     if (!produtoId) { showError('Falha ao obter ID do produto.'); setIsSubmitting(false); return; }
 
-    // Sync cost items
     const { error: deleteError } = await supabase.from('custos_produtos').delete().eq('produto_id', produtoId);
     if (deleteError) { showError(`Erro ao limpar custos antigos: ${deleteError.message}`); setIsSubmitting(false); return; }
 
@@ -136,13 +134,13 @@ export const ComposicaoDialog = ({ open, onOpenChange, onSuccess, composicao }: 
             <DialogDescription>Crie a composição de custos para um produto final.</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="nome" render={({ field }) => (
                   <FormItem><FormLabel>Nome do Produto Final</FormLabel><FormControl><Input placeholder="Ex: Açaí 500ml com adicionais" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="imagem_url" render={({ field }) => (
-                  <FormItem><FormLabel>URL da Imagem (Opcional)</FormLabel><FormControl><Input placeholder="https://exemplo.com/imagem.png" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>URL da Imagem (Opcional)</FormLabel><FormControl><Input placeholder="https://exemplo.com/imagem.png" {...field} /></FormControl><FormMessage /></FormMessage>
                 )} />
               </div>
             </form>
