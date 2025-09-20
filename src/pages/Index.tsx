@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DollarSign, CreditCard, MinusCircle } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { NovaDespesaDialog } from "@/components/NovaDespesaDialog";
+import { NovaVendaDialog } from "@/components/NovaVendaDialog";
 
 const Index = () => {
   const [stats, setStats] = useState({
@@ -16,6 +17,7 @@ const Index = () => {
   });
   const [loading, setLoading] = useState(true);
   const [isDespesaDialogOpen, setIsDespesaDialogOpen] = useState(false);
+  const [isVendaDialogOpen, setIsVendaDialogOpen] = useState(false);
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -69,11 +71,16 @@ const Index = () => {
         onOpenChange={setIsDespesaDialogOpen}
         onDespesaAdicionada={fetchStats}
       />
+      <NovaVendaDialog
+        open={isVendaDialogOpen}
+        onOpenChange={setIsVendaDialogOpen}
+        onVendaAdicionada={fetchStats}
+      />
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <div className="flex items-center space-x-2">
-            <Button>Nova Venda</Button>
+            <Button onClick={() => setIsVendaDialogOpen(true)}>Nova Venda</Button>
             <Button variant="outline" onClick={() => setIsDespesaDialogOpen(true)}>Nova Despesa</Button>
           </div>
         </div>
