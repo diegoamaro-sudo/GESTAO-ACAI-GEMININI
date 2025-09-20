@@ -3,20 +3,12 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect } from 'react';
 
 const Login = () => {
   const { session } = useAuth();
 
-  useEffect(() => {
-    if (session) {
-      window.location.pathname = '/';
-    }
-  }, [session]);
-
-
   if (session) {
-    return <Navigate to="/" />;
+    return <Navigate to="/" replace />;
   }
 
   return (

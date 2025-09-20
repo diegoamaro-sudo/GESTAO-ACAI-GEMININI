@@ -31,25 +31,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchConfig = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('configuracoes_usuario')
       .select('nome_loja, limite_mei, logo_url')
       .eq('user_id', userId)
       .single();
     if (data) setConfig(data);
-    // Don't show error if it's just not found yet
   }, []);
 
   useEffect(() => {
     const getSessionAndConfig = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchConfig(currentUser.id);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          await fetchConfig(currentUser.id);
+        }
+      } catch (error) {
+        console.error("Erro ao inicializar a sessão:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     getSessionAndConfig();
