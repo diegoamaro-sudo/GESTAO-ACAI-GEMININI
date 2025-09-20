@@ -25,7 +25,7 @@ const ChannelChart = ({ data }: ChannelChartProps) => {
             <PieChart>
               <Tooltip
                 cursor={{ fill: 'hsl(var(--muted))' }}
-                contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--primary-foreground))' }}
+                contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', color: '#FFFFFF' }}
                 formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
               />
               <Pie
