@@ -25,6 +25,7 @@ type Despesa = {
   status: 'pendente' | 'paga';
   recorrente: boolean;
   data_vencimento_dia: number | null;
+  venda_id: string | null; // Adicionado para indicar vínculo com venda
 };
 
 type TipoDespesa = {
@@ -163,6 +164,7 @@ const HistoricoDespesas = () => {
             <TableRow>
               <TableHead>Descrição</TableHead>
               <TableHead>Tipo</TableHead>
+              <TableHead>Origem</TableHead> {/* Nova coluna */}
               <TableHead className="text-right">Valor</TableHead>
               <TableHead className="text-right">Data</TableHead>
               <TableHead className="text-center">Status</TableHead>
@@ -171,7 +173,7 @@ const HistoricoDespesas = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={6} className="text-center">
                   Carregando...
                 </TableCell>
               </TableRow>
@@ -184,6 +186,11 @@ const HistoricoDespesas = () => {
                       {despesa.tipos_despesa?.emoji} {despesa.tipos_despesa?.nome || 'N/A'}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    <Badge variant={despesa.venda_id ? 'secondary' : 'outline'}>
+                      {despesa.venda_id ? 'Venda' : 'Operacional'}
+                    </Badge>
+                  </TableCell> {/* Nova célula */}
                   <TableCell className="text-right text-destructive">{formatCurrency(despesa.valor)}</TableCell>
                   <TableCell className="text-right">{formatDate(despesa.data)}</TableCell>
                   <TableCell className="text-center">
@@ -195,7 +202,7 @@ const HistoricoDespesas = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={6} className="text-center">
                   Nenhuma despesa encontrada com os filtros selecionados.
                 </TableCell>
               </TableRow>
