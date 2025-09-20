@@ -43,8 +43,8 @@ const fetchDashboardData = async () => {
 
   if (vendasError) throw new Error(vendasError.message);
 
-  // Fetch Despesas OPERACIONAIS (sem venda_id)
-  const { data: despesasOperacionaisMes, error: despesasOperacionaisError } = await supabase
+  // Fetch Despesas OPERACIONAIS (sem venda_id) para cálculo de lucro e métrica
+  const { data: operationalExpenses, error: operationalExpensesError } = await supabase
     .from('despesas')
     .select('valor, tipos_despesa(nome, emoji)')
     .eq('status', 'paga')
@@ -52,9 +52,19 @@ const fetchDashboardData = async () => {
     .gte('data', startOfMonth)
     .lte('data', endOfMonth);
 
-  if (despesasOperacionaisError) throw new Error(despesasOperacionaisError.message);
+  if (operationalExpensesError) throw new Error(operationalExpensesError.message);
 
-  const totalDespesasOperacionaisMes = despesasOperacionaisMes?.reduce((acc, d) => acc + d.valor, 0) || 0;
+  const totalDespesasOperacionaisMes = operationalExpenses?.reduce((acc, d) => acc + d.valor, 0) || 0;
+
+  // Fetch TODAS as despesas pagas do mês (para o gráfico 'Onde você gasta mais')
+  const { data: allPaidExpensesMonth, error: allPaidExpensesError } = await supabase
+    .from('despesas')
+    .select('valor, tipos_despesa(nome, emoji)')
+    .eq('status', 'paga')
+    .gte('data', startOfMonth)
+    .lte('data', endOfMonth);
+
+  if (allPaidExpensesError) throw new Error(allPaidExpensesError.message);
 
   const vendasHoje = vendas?.filter(v => v.created_at >= startOfDay) || [];
   const salesDay = vendasHoje.reduce((acc, v) => acc + v.valor_total, 0);
@@ -64,8 +74,6 @@ const fetchDashboardData = async () => {
   const profitMonthVendas = vendas?.reduce((acc, v) => acc + v.lucro_total, 0) || 0; // Lucro bruto das vendas do mês
 
   // Lucro líquido do dia (lucro das vendas - despesas operacionais proporcionais ao dia, simplificado aqui)
-  // Para simplificar, vamos considerar o lucro do dia como o lucro bruto das vendas do dia.
-  // Um cálculo mais preciso de despesas operacionais diárias seria complexo e pode ser adicionado se necessário.
   const profitDay = profitDayVendas; 
 
   // Lucro líquido do mês (lucro das vendas - despesas operacionais do mês)
@@ -80,7 +88,7 @@ const fetchDashboardData = async () => {
     salesMonth,
     profitMonth,
     salesMonthCount: salesMonthCount || 0,
-    totalDespesasMes: totalDespesasOperacionaisMes, // Agora reflete apenas despesas operacionais
+    totalDespesasMes: totalDespesasOperacionaisMes, // Reflete apenas despesas operacionais
     overallProfitMargin,
   };
 
@@ -99,9 +107,6 @@ const fetchDashboardData = async () => {
       dayData.lucro += venda.lucro_total || 0; // Lucro bruto da venda
     }
   });
-  // Subtrair despesas operacionais diárias do lucro diário no gráfico (simplificado)
-  // Para um cálculo mais preciso, precisaríamos distribuir as despesas operacionais pelos dias.
-  // Por enquanto, o gráfico de desempenho mostrará o lucro bruto das vendas.
 
   // Sales by Channel Chart Data
   const salesByChannel = vendas?.reduce((acc, venda) => {
@@ -111,8 +116,8 @@ const fetchDashboardData = async () => {
   }, {} as Record<string, number>);
   const channelData = Object.entries(salesByChannel || {}).map(([name, value]) => ({ name, value }));
 
-  // Top Expenses Chart Data (apenas despesas operacionais)
-  const expensesByType = despesasOperacionaisMes?.reduce((acc, despesa) => {
+  // Top Expenses Chart Data (agora inclui todas as despesas pagas)
+  const expensesByType = allPaidExpensesMonth?.reduce((acc, despesa) => {
     const typeName = despesa.tipos_despesa?.nome || 'Outros';
     acc[typeName] = (acc[typeName] || 0) + despesa.valor;
     return acc;
