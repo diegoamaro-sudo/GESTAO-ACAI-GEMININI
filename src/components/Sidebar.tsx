@@ -28,10 +28,10 @@ const Sidebar = () => {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-white/10 bg-card md:flex">
-      <div className="flex h-16 items-center border-b border-white/10 px-6">
+      <div className="flex h-24 items-center justify-center border-b border-white/10 px-6">
         <Link to="/" className="flex items-center gap-2 font-semibold">
           {config?.logo_url ? (
-            <img src={config.logo_url} alt="Logo da Loja" className="h-10 w-auto object-contain" />
+            <img src={config.logo_url} alt="Logo da Loja" className="h-20 w-auto object-contain" />
           ) : (
             <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
               <Package className="h-5 w-5 text-primary-foreground" />
