@@ -277,6 +277,7 @@ const Index = () => {
         <MetricCard title="Lucro do Dia" value={formatCurrency(stats.profitDay)} subtext={`${profitDayMargin}% de margem`} icon={DollarSign} gradient="bg-gradient-to-r from-green-400 to-teal-400" />
         <MetricCard title="Vendas do Mês" value={formatCurrency(stats.salesMonth)} subtext={`${stats.salesMonthCount} vendas`} icon={TrendingUp} gradient="bg-gradient-to-r from-primary to-pink-500" />
         <MetricCard title="Lucro do Mês" value={formatCurrency(stats.profitMonth)} subtext={`${profitMonthMargin}% de margem`} icon={Wallet} gradient="bg-gradient-to-r from-green-400 to-teal-400" />
+        <MetricCard title="Despesas Pagas (Mês)" value={formatCurrency(stats.totalDespesasMes)} subtext="Total de despesas do mês" icon={ReceiptText} gradient="bg-gradient-to-r from-red-500 to-orange-500" />
         <MetricCard title="Margem de Lucro (Mês)" value={formatPercentage(stats.overallProfitMargin)} subtext="Lucro líquido sobre faturamento" icon={Percent} gradient="bg-gradient-to-r from-purple-500 to-indigo-500" />
       </div>
       <div className="grid gap-6 lg:grid-cols-5">
