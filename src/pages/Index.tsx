@@ -39,6 +39,7 @@ const fetchDashboardData = async () => {
     .from('despesas')
     .select('valor')
     .eq('status', 'paga')
+    .eq('recorrente', false) // Only count actual expense instances, not templates
     .gte('data', startOfMonth)
     .lte('data', new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString()); // End of current month
 

@@ -13,7 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, CheckCircle, XCircle, CalendarDays } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CheckCircle, XCircle, CalendarDays, Edit } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,36 +33,48 @@ import {
 } from '@/components/ui/alert-dialog';
 import { NovaDespesaDialog } from '@/components/NovaDespesaDialog';
 import { showSuccess, showError } from '@/utils/toast';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type Despesa = {
   id: string;
   descricao: string;
   valor: number;
-  categoria: string;
+  tipo_despesa_id: string;
+  tipos_despesa: { nome: string; emoji: string } | null;
   data: string;
   status: 'pendente' | 'paga';
   recorrente: boolean;
   data_vencimento_dia: number | null;
 };
 
-const fetchDespesas = async (userId: string, mes: number, ano: number) => {
+const fetchDespesasFixas = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('despesas')
+    .select('*, tipos_despesa(nome, emoji)')
+    .eq('user_id', userId)
+    .eq('recorrente', true)
+    .order('descricao', { ascending: true });
+
+  if (error) throw new Error('Erro ao buscar despesas fixas: ' + error.message);
+  return data || [];
+};
+
+const fetchDespesasDoMes = async (userId: string, mes: number, ano: number) => {
   const startOfMonth = new Date(ano, mes - 1, 1).toISOString();
   const endOfMonth = new Date(ano, mes, 0).toISOString();
 
   const { data, error } = await supabase
     .from('despesas')
-    .select('*')
+    .select('*, tipos_despesa(nome, emoji)')
     .eq('user_id', userId)
+    .eq('recorrente', false) // Only non-recurring instances for the month
     .gte('data', startOfMonth)
     .lte('data', endOfMonth)
     .order('data', { ascending: false });
 
-  if (error) {
-    throw new Error('Erro ao buscar despesas: ' + error.message);
-  }
+  if (error) throw new Error('Erro ao buscar despesas do mês: ' + error.message);
   return data || [];
 };
 
@@ -72,20 +84,39 @@ const Despesas = () => {
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [activeTab, setActiveTab] = useState('despesas-do-mes');
 
-  const { data: despesas, isLoading } = useQuery<Despesa[]>({
-    queryKey: ['despesas', user?.id, currentMonth, currentYear],
-    queryFn: () => fetchDespesas(user!.id, currentMonth, currentYear),
-    enabled: !!user,
+  const { data: despesasFixas, isLoading: isLoadingFixas } = useQuery<Despesa[]>({
+    queryKey: ['despesasFixas', user?.id],
+    queryFn: () => fetchDespesasFixas(user!.id),
+    enabled: !!user && activeTab === 'despesas-fixas',
+  });
+
+  const { data: despesasDoMes, isLoading: isLoadingDoMes } = useQuery<Despesa[]>({
+    queryKey: ['despesasDoMes', user?.id, currentMonth, currentYear],
+    queryFn: () => fetchDespesasDoMes(user!.id, currentMonth, currentYear),
+    enabled: !!user && activeTab === 'despesas-do-mes',
   });
 
   const [isNovaDespesaDialogOpen, setIsNovaDespesaDialogOpen] = useState(false);
+  const [despesaToEdit, setDespesaToEdit] = useState<Despesa | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [despesaToDelete, setDespesaToDelete] = useState<Despesa | null>(null);
 
   const handleSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['despesas', user?.id, currentMonth, currentYear] });
+    queryClient.invalidateQueries({ queryKey: ['despesasFixas', user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['despesasDoMes', user?.id, currentMonth, currentYear] });
     queryClient.invalidateQueries({ queryKey: ['dashboardData'] }); // Invalida o dashboard para atualizar totais
+  };
+
+  const handleAddNew = () => {
+    setDespesaToEdit(null);
+    setIsNovaDespesaDialogOpen(true);
+  };
+
+  const handleEdit = (despesa: Despesa) => {
+    setDespesaToEdit(despesa);
+    setIsNovaDespesaDialogOpen(true);
   };
 
   const handleDelete = (despesa: Despesa) => {
@@ -161,6 +192,7 @@ const Despesas = () => {
         open={isNovaDespesaDialogOpen}
         onOpenChange={setIsNovaDespesaDialogOpen}
         onDespesaAdicionada={handleSuccess}
+        despesa={despesaToEdit}
       />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
@@ -182,122 +214,188 @@ const Despesas = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <CardTitle>Gerenciar Despesas</CardTitle>
-              <CardDescription>Visualize, adicione e gerencie suas despesas fixas e variáveis.</CardDescription>
+              <CardDescription>Visualize, adicione e gerencie suas despesas.</CardDescription>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button onClick={handleGenerateMonthlyExpenses} variant="outline">
-                <CalendarDays className="mr-2 h-4 w-4" /> Gerar Despesas do Mês
-              </Button>
-              <Button onClick={() => setIsNovaDespesaDialogOpen(true)}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Nova Despesa
-              </Button>
-            </div>
+            <Button onClick={handleAddNew}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Nova Despesa
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4 mb-4">
-            <Select value={String(currentMonth)} onValueChange={(value) => setCurrentMonth(Number(value))}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Mês" />
-              </SelectTrigger>
-              <SelectContent>
-                {monthNames.map((name, index) => (
-                  <SelectItem key={index + 1} value={String(index + 1)}>
-                    {name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={String(currentYear)} onValueChange={(value) => setCurrentYear(Number(value))}>
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="Ano" />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((year) => (
-                  <SelectItem key={year} value={String(year)}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="despesas-do-mes">Despesas do Mês</TabsTrigger>
+              <TabsTrigger value="despesas-fixas">Despesas Fixas (Templates)</TabsTrigger>
+            </TabsList>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead className="text-right">Data</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead>
-                  <span className="sr-only">Ações</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center">
-                    Carregando...
-                  </TableCell>
-                </TableRow>
-              ) : despesas && despesas.length > 0 ? (
-                despesas.map((despesa) => (
-                  <TableRow key={despesa.id}>
-                    <TableCell className="font-medium">{despesa.descricao}</TableCell>
-                    <TableCell>
-                      <Badge variant={despesa.categoria === 'fixa' ? 'destructive' : 'secondary'}>
-                        {despesa.categoria === 'fixa' ? 'Fixa' : 'Variável'}
-                      </Badge>
-                      {despesa.recorrente && <Badge variant="outline" className="ml-2">Recorrente</Badge>}
-                    </TableCell>
-                    <TableCell className="text-right text-destructive">{formatCurrency(despesa.valor)}</TableCell>
-                    <TableCell className="text-right">{formatDate(despesa.data)}</TableCell>
-                    <TableCell className="text-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleStatus(despesa)}
-                        className={cn(
-                          "flex items-center gap-1",
-                          despesa.status === 'paga' ? "text-success hover:text-success/80" : "text-muted-foreground hover:text-primary"
-                        )}
-                      >
-                        {despesa.status === 'paga' ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                        {despesa.status === 'paga' ? 'Paga' : 'Pendente'}
-                      </Button>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => toggleStatus(despesa)}>
-                            Marcar como {despesa.status === 'paga' ? 'Pendente' : 'Paga'}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDelete(despesa)} className="text-destructive">
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+            <TabsContent value="despesas-do-mes" className="mt-4">
+              <div className="flex items-center gap-4 mb-4">
+                <Select value={String(currentMonth)} onValueChange={(value) => setCurrentMonth(Number(value))}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthNames.map((name, index) => (
+                      <SelectItem key={index + 1} value={String(index + 1)}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={String(currentYear)} onValueChange={(value) => setCurrentYear(Number(value))}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Ano" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={String(year)}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleGenerateMonthlyExpenses} variant="outline" className="ml-auto">
+                  <CalendarDays className="mr-2 h-4 w-4" /> Gerar Despesas do Mês
+                </Button>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="text-right">Data</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead>
+                      <span className="sr-only">Ações</span>
+                    </TableHead>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center">
-                    Nenhuma despesa encontrada para este mês.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingDoMes ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center">
+                        Carregando...
+                      </TableCell>
+                    </TableRow>
+                  ) : despesasDoMes && despesasDoMes.length > 0 ? (
+                    despesasDoMes.map((despesa) => (
+                      <TableRow key={despesa.id}>
+                        <TableCell className="font-medium">{despesa.descricao}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {despesa.tipos_despesa?.emoji} {despesa.tipos_despesa?.nome || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-destructive">{formatCurrency(despesa.valor)}</TableCell>
+                        <TableCell className="text-right">{formatDate(despesa.data)}</TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleStatus(despesa)}
+                            className={cn(
+                              "flex items-center gap-1",
+                              despesa.status === 'paga' ? "text-success hover:text-success/80" : "text-muted-foreground hover:text-primary"
+                            )}
+                          >
+                            {despesa.status === 'paga' ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                            {despesa.status === 'paga' ? 'Paga' : 'Pendente'}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button aria-haspopup="true" size="icon" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Toggle menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => toggleStatus(despesa)}>
+                                Marcar como {despesa.status === 'paga' ? 'Pendente' : 'Paga'}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDelete(despesa)} className="text-destructive">
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center">
+                        Nenhuma despesa encontrada para este mês.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
+
+            <TabsContent value="despesas-fixas" className="mt-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="text-right">Dia Vencimento</TableHead>
+                    <TableHead>
+                      <span className="sr-only">Ações</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingFixas ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center">
+                        Carregando...
+                      </TableCell>
+                    </TableRow>
+                  ) : despesasFixas && despesasFixas.length > 0 ? (
+                    despesasFixas.map((despesa) => (
+                      <TableRow key={despesa.id}>
+                        <TableCell className="font-medium">{despesa.descricao}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {despesa.tipos_despesa?.emoji} {despesa.tipos_despesa?.nome || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-destructive">{formatCurrency(despesa.valor)}</TableCell>
+                        <TableCell className="text-right">{despesa.data_vencimento_dia}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button aria-haspopup="true" size="icon" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Toggle menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => handleEdit(despesa)}>Editar</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDelete(despesa)} className="text-destructive">
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center">
+                        Nenhuma despesa fixa encontrada.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </>
