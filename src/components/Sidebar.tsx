@@ -1,6 +1,8 @@
-import { Link, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, Package, DollarSign, Settings, ClipboardList, Building2 } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, ShoppingCart, Package, DollarSign, Settings, ClipboardList, Building2, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from './ui/button';
 
 const navItems = [
   { href: '/', icon: Home, label: 'Dashboard' },
@@ -14,6 +16,12 @@ const navItems = [
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-white/10 bg-card md:flex">
@@ -24,23 +32,35 @@ const Sidebar = () => {
           </div>
         </Link>
       </div>
-      <nav className="flex-1 overflow-auto py-4">
-        <div className="grid items-start px-4 text-sm font-medium">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:text-primary",
-                location.pathname === item.href && "bg-primary/10 text-primary font-bold"
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              {item.label}
-            </Link>
-          ))}
+      <div className="flex flex-1 flex-col justify-between">
+        <nav className="py-4">
+          <div className="grid items-start px-4 text-sm font-medium">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:text-primary",
+                  location.pathname === item.href && "bg-primary/10 text-primary font-bold"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </nav>
+        <div className="p-4">
+          <Button
+            onClick={handleLogout}
+            variant="ghost"
+            className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
+          >
+            <LogOut className="h-5 w-5" />
+            Sair
+          </Button>
         </div>
-      </nav>
+      </div>
     </aside>
   );
 };
