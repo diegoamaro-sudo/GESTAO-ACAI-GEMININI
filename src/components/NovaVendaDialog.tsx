@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { showSuccess, showError } from '@/utils/toast';
 import { PlusCircle, Trash2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Produto = { id: string; nome: string; valor_venda: number; custo_unitario: number };
 type CanalVenda = { id: string; nome: string; taxa: number };
@@ -23,6 +24,7 @@ type TipoDespesa = { id: string; nome: string; emoji: string }; // Adicionado ti
 const formSchema = z.object({
   canal_venda_id: z.string().uuid({ message: 'Selecione um canal de venda.' }),
   frete: z.coerce.number().min(0).default(0),
+  taxar_frete: z.boolean().default(false).optional(),
 });
 
 type NovaVendaDialogProps = {
@@ -43,7 +45,7 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { frete: 0 },
+    defaultValues: { frete: 0, taxar_frete: false },
   });
 
   // Função para buscar ou criar tipos de despesa padrão
@@ -128,19 +130,22 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
 
   const { subtotalProdutos, custoTotalProdutos, taxaCanal, valorTotal, lucroTotal } = useMemo(() => {
     const subtotalProdutos = itensVenda.reduce((acc, item) => acc + item.subtotal, 0);
+    const frete = form.watch('frete') || 0;
+    const taxarFrete = form.watch('taxar_frete');
     const custoTotalProdutos = itensVenda.reduce((acc, item) => acc + (item.produto.custo_unitario * item.quantidade), 0);
     
     const canalId = form.watch('canal_venda_id');
-    const frete = form.watch('frete') || 0;
     const canal = canaisVenda.find(c => c.id === canalId);
     const taxaPercentual = canal ? canal.taxa / 100 : 0;
     
-    const taxaCanal = subtotalProdutos * taxaPercentual;
+    const baseForTax = subtotalProdutos + (taxarFrete ? frete : 0);
+    const taxaCanal = baseForTax * taxaPercentual;
+    
     const valorTotalCalculado = subtotalProdutos + frete; // Faturamento bruto
     const lucroTotalCalculado = valorTotalCalculado - custoTotalProdutos - taxaCanal; // Lucro real após custos e taxas
 
     return { subtotalProdutos, custoTotalProdutos, taxaCanal, valorTotal: valorTotalCalculado, lucroTotal: lucroTotalCalculado };
-  }, [itensVenda, form.watch('canal_venda_id'), form.watch('frete'), canaisVenda]);
+  }, [itensVenda, form.watch('canal_venda_id'), form.watch('frete'), form.watch('taxar_frete'), canaisVenda]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user) return showError('Você precisa estar logado.');
@@ -153,6 +158,7 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
       user_id: user.id,
       canal_venda_id: values.canal_venda_id,
       frete: values.frete,
+      taxar_frete: values.taxar_frete, // Incluindo o novo campo
       subtotal_produtos: subtotalProdutos,
       taxa_canal: taxaCanal,
       valor_total: valorTotal, // Faturamento bruto
@@ -325,6 +331,28 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
                     </FormItem>
                   )}
                 />
+                {form.watch('frete') > 0 && (
+                  <FormField
+                    control={form.control}
+                    name="taxar_frete"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Aplicar taxa do canal no frete</FormLabel>
+                          <FormDescription>
+                            Se ativado, a taxa do canal de venda também será calculada sobre o valor do frete.
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                )}
               </form>
             </Form>
             <div className="mt-4 space-y-2 rounded-lg border p-4">
