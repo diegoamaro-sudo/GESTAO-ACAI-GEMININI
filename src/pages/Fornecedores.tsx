@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,25 +15,27 @@ export type Fornecedor = {
   nome: string;
 };
 
+const fetchFornecedores = async () => {
+  const { data, error } = await supabase.from('fornecedores').select('*').order('nome', { ascending: true });
+  if (error) throw new Error('Erro ao buscar fornecedores: ' + error.message);
+  return data || [];
+};
+
 const Fornecedores = () => {
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: fornecedores, isLoading: loading } = useQuery<Fornecedor[]>({
+    queryKey: ['fornecedores'],
+    queryFn: fetchFornecedores,
+  });
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedFornecedor, setSelectedFornecedor] = useState<Fornecedor | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [fornecedorToDelete, setFornecedorToDelete] = useState<Fornecedor | null>(null);
 
-  const fetchFornecedores = async () => {
-    setLoading(true);
-    const { data, error } = await supabase.from('fornecedores').select('*').order('nome', { ascending: true });
-    if (error) showError('Erro ao buscar fornecedores: ' + error.message);
-    else setFornecedores(data || []);
-    setLoading(false);
+  const handleSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['fornecedores'] });
   };
-
-  useEffect(() => {
-    fetchFornecedores();
-  }, []);
 
   const handleEdit = (fornecedor: Fornecedor) => {
     setSelectedFornecedor(fornecedor);
@@ -55,7 +58,7 @@ const Fornecedores = () => {
     if (error) showError('Erro ao excluir fornecedor: ' + error.message);
     else {
       showSuccess('Fornecedor excluído com sucesso!');
-      fetchFornecedores();
+      handleSuccess();
     }
     setIsDeleteDialogOpen(false);
     setFornecedorToDelete(null);
@@ -66,7 +69,7 @@ const Fornecedores = () => {
       <FornecedorDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        onSuccess={fetchFornecedores}
+        onSuccess={handleSuccess}
         fornecedor={selectedFornecedor}
       />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -107,7 +110,7 @@ const Fornecedores = () => {
             <TableBody>
               {loading ? (
                 <TableRow><TableCell colSpan={2} className="text-center">Carregando...</TableCell></TableRow>
-              ) : fornecedores.length > 0 ? (
+              ) : fornecedores && fornecedores.length > 0 ? (
                 fornecedores.map((fornecedor) => (
                   <TableRow key={fornecedor.id}>
                     <TableCell className="font-medium">{fornecedor.nome}</TableCell>

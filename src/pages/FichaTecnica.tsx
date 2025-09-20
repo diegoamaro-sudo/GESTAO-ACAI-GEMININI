@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,28 +16,27 @@ type ComposicaoProduto = {
   custo_total_calculado: number;
 };
 
+const fetchComposicoes = async () => {
+  const { data, error } = await supabase.from('produtos_fornecedores').select('*').order('nome', { ascending: true });
+  if (error) throw new Error('Erro ao buscar fichas técnicas: ' + error.message);
+  return data || [];
+};
+
 const FichaTecnica = () => {
-  const [composicoes, setComposicoes] = useState<ComposicaoProduto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: composicoes, isLoading: loading } = useQuery<ComposicaoProduto[]>({
+    queryKey: ['composicoes'],
+    queryFn: fetchComposicoes,
+  });
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedComposicao, setSelectedComposicao] = useState<ComposicaoProduto | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [composicaoToDelete, setComposicaoToDelete] = useState<ComposicaoProduto | null>(null);
 
-  const fetchComposicoes = async () => {
-    setLoading(true);
-    const { data, error } = await supabase.from('produtos_fornecedores').select('*').order('nome', { ascending: true });
-    if (error) {
-      showError('Erro ao buscar fichas técnicas: ' + error.message);
-    } else {
-      setComposicoes(data || []);
-    }
-    setLoading(false);
+  const handleSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['composicoes'] });
   };
-
-  useEffect(() => {
-    fetchComposicoes();
-  }, []);
 
   const handleEdit = (composicao: ComposicaoProduto) => {
     setSelectedComposicao(composicao);
@@ -60,7 +60,7 @@ const FichaTecnica = () => {
       showError('Erro ao excluir ficha técnica: ' + error.message);
     } else {
       showSuccess('Ficha técnica excluída com sucesso!');
-      fetchComposicoes();
+      handleSuccess();
     }
     setIsDeleteDialogOpen(false);
     setComposicaoToDelete(null);
@@ -71,7 +71,7 @@ const FichaTecnica = () => {
       <ComposicaoDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        onSuccess={fetchComposicoes}
+        onSuccess={handleSuccess}
         composicao={selectedComposicao}
       />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -104,7 +104,7 @@ const FichaTecnica = () => {
         <CardContent>
           {loading ? (
             <p className="text-center">Carregando...</p>
-          ) : composicoes.length > 0 ? (
+          ) : composicoes && composicoes.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {composicoes.map((composicao) => (
                 <Card key={composicao.id} className="overflow-hidden flex flex-col">

@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -32,21 +33,34 @@ const iconMap = {
   Store: <Store className="h-5 w-5 text-muted-foreground" />,
 };
 
+const fetchCanais = async (userId: string) => {
+  const { data, error } = await supabase.from('canais_venda').select('*').eq('user_id', userId).order('nome');
+  if (error) throw new Error('Erro ao buscar canais de venda.');
+  return data || [];
+};
+
 const Configuracoes = () => {
   const { user, config, refetchConfig } = useAuth();
+  const queryClient = useQueryClient();
+  
   // State for General Config
   const [isSubmittingConfig, setIsSubmittingConfig] = useState(false);
   // State for Logo
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isSubmittingLogo, setIsSubmittingLogo] = useState(false);
-  // State for Sales Channels
-  const [canais, setCanais] = useState<CanalVenda[]>([]);
-  const [loadingCanais, setLoadingCanais] = useState(true);
+  // State for Sales Channels Dialogs
   const [isCanalDialogOpen, setIsCanalDialogOpen] = useState(false);
   const [selectedCanal, setSelectedCanal] = useState<CanalVenda | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [canalToDelete, setCanalToDelete] = useState<CanalVenda | null>(null);
+
+  // Data fetching with React Query
+  const { data: canais, isLoading: loadingCanais } = useQuery<CanalVenda[]>({
+    queryKey: ['canais', user?.id],
+    queryFn: () => fetchCanais(user!.id),
+    enabled: !!user,
+  });
 
   // Form for General Config
   const configForm = useForm<ConfiguracoesUsuario>({
@@ -56,19 +70,6 @@ const Configuracoes = () => {
       limite_mei: 81000,
     }
   });
-
-  const fetchCanais = useCallback(async () => {
-    if (!user) return;
-    setLoadingCanais(true);
-    const { data, error } = await supabase.from('canais_venda').select('*').eq('user_id', user.id).order('nome');
-    if (error) showError('Erro ao buscar canais de venda.');
-    else setCanais(data || []);
-    setLoadingCanais(false);
-  }, [user]);
-
-  useEffect(() => {
-    fetchCanais();
-  }, [fetchCanais]);
 
   useEffect(() => {
     if (config) {
@@ -135,6 +136,9 @@ const Configuracoes = () => {
   };
 
   // Handlers for Sales Channels
+  const handleCanalSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['canais', user?.id] });
+  };
   const handleEditCanal = (canal: CanalVenda) => { setSelectedCanal(canal); setIsCanalDialogOpen(true); };
   const handleAddNewCanal = () => { setSelectedCanal(null); setIsCanalDialogOpen(true); };
   const handleDeleteCanal = (canal: CanalVenda) => { setCanalToDelete(canal); setIsDeleteDialogOpen(true); };
@@ -144,7 +148,7 @@ const Configuracoes = () => {
     if (error) showError('Erro ao excluir canal: ' + error.message);
     else {
       showSuccess('Canal excluído com sucesso!');
-      fetchCanais();
+      handleCanalSuccess();
     }
     setIsDeleteDialogOpen(false);
     setCanalToDelete(null);
@@ -152,7 +156,7 @@ const Configuracoes = () => {
 
   return (
     <>
-      <CanalVendaDialog open={isCanalDialogOpen} onOpenChange={setIsCanalDialogOpen} onSuccess={fetchCanais} canal={selectedCanal} />
+      <CanalVendaDialog open={isCanalDialogOpen} onOpenChange={setIsCanalDialogOpen} onSuccess={handleCanalSuccess} canal={selectedCanal} />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Você tem certeza?</AlertDialogTitle><AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente o canal "{canalToDelete?.nome}".</AlertDialogDescription></AlertDialogHeader>
@@ -192,7 +196,7 @@ const Configuracoes = () => {
             <Table>
               <TableHeader><TableRow><TableHead className="w-[64px]">Ícone</TableHead><TableHead>Nome</TableHead><TableHead className="text-right">Taxa (%)</TableHead><TableHead><span className="sr-only">Ações</span></TableHead></TableRow></TableHeader>
               <TableBody>
-                {loadingCanais ? (<TableRow><TableCell colSpan={4} className="text-center">Carregando...</TableCell></TableRow>) : canais.length > 0 ? canais.map(canal => (<TableRow key={canal.id}><TableCell>{iconMap[canal.icon]}</TableCell><TableCell className="font-medium">{canal.nome}</TableCell><TableCell className="text-right">{canal.taxa}%</TableCell><TableCell className="text-right"><DropdownMenu><DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Ações</DropdownMenuLabel><DropdownMenuItem onClick={() => handleEditCanal(canal)}>Editar</DropdownMenuItem><DropdownMenuItem onClick={() => handleDeleteCanal(canal)} className="text-destructive">Excluir</DropdownMenuItem></DropdownMenuContent></DropdownMenu></TableCell></TableRow>)) : (<TableRow><TableCell colSpan={4} className="text-center">Nenhum canal de venda encontrado.</TableCell></TableRow>)}
+                {loadingCanais ? (<TableRow><TableCell colSpan={4} className="text-center">Carregando...</TableCell></TableRow>) : canais && canais.length > 0 ? canais.map(canal => (<TableRow key={canal.id}><TableCell>{iconMap[canal.icon]}</TableCell><TableCell className="font-medium">{canal.nome}</TableCell><TableCell className="text-right">{canal.taxa}%</TableCell><TableCell className="text-right"><DropdownMenu><DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Ações</DropdownMenuLabel><DropdownMenuItem onClick={() => handleEditCanal(canal)}>Editar</DropdownMenuItem><DropdownMenuItem onClick={() => handleDeleteCanal(canal)} className="text-destructive">Excluir</DropdownMenuItem></DropdownMenuContent></DropdownMenu></TableCell></TableRow>)) : (<TableRow><TableCell colSpan={4} className="text-center">Nenhum canal de venda encontrado.</TableCell></TableRow>)}
               </TableBody>
             </Table>
           </CardContent>

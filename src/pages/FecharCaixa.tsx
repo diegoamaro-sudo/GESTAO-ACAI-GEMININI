@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,88 +20,94 @@ type FechamentoMensal = {
   transferencia_pf: number;
 };
 
+const fetchFechamentos = async (userId: string | undefined) => {
+  if (!userId) return { fechamentos: [], faturamentoAnual: 0 };
+
+  // Lógica para fechar meses anteriores automaticamente
+  const { data: lastFechamento } = await supabase
+    .from('faturamento_mensal')
+    .select('mes, ano')
+    .eq('user_id', userId)
+    .order('ano', { ascending: false })
+    .order('mes', { ascending: false })
+    .limit(1)
+    .single();
+
+  const today = new Date();
+  const currentMonth = today.getMonth() + 1;
+  const currentYear = today.getFullYear();
+  
+  let startMonth = lastFechamento ? lastFechamento.mes + 1 : 1;
+  let startYear = lastFechamento ? lastFechamento.ano : currentYear;
+
+  if (startMonth > 12) {
+    startMonth = 1;
+    startYear++;
+  }
+
+  for (let y = startYear; y <= currentYear; y++) {
+    const endMonth = (y < currentYear) ? 12 : currentMonth - 1;
+    for (let m = (y === startYear ? startMonth : 1); m <= endMonth; m++) {
+      const firstDay = new Date(y, m - 1, 1).toISOString();
+      const lastDay = new Date(y, m, 0).toISOString();
+      
+      const { data: vendas } = await supabase
+        .from('vendas')
+        .select('valor_total')
+        .eq('user_id', userId)
+        .gte('created_at', firstDay)
+        .lte('created_at', lastDay);
+      
+      const faturamentoMes = vendas?.reduce((acc, v) => acc + v.valor_total, 0) || 0;
+
+      await supabase.from('faturamento_mensal').insert({
+        user_id: userId,
+        mes: m,
+        ano: y,
+        faturamento: faturamentoMes,
+      });
+    }
+  }
+
+  // Buscar dados atualizados
+  const { data: fechamentosData, error } = await supabase
+    .from('faturamento_mensal')
+    .select('*')
+    .eq('user_id', userId)
+    .order('ano', { ascending: false })
+    .order('mes', { ascending: false });
+
+  if (error) {
+    throw new Error('Erro ao buscar dados: ' + error.message);
+  }
+  
+  const faturamentoAnual = fechamentosData?.filter(f => f.ano === currentYear).reduce((acc, f) => acc + f.faturamento, 0) || 0;
+  
+  return { fechamentos: fechamentosData || [], faturamentoAnual };
+};
+
 const FecharCaixa = () => {
   const { user } = useAuth();
-  const [fechamentos, setFechamentos] = useState<FechamentoMensal[]>([]);
-  const [faturamentoAnual, setFaturamentoAnual] = useState(0);
+  const queryClient = useQueryClient();
+  
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['fechamentos', user?.id],
+    queryFn: () => fetchFechamentos(user?.id),
+    enabled: !!user,
+  });
+
+  const fechamentos = data?.fechamentos || [];
+  const faturamentoAnual = data?.faturamentoAnual || 0;
+
   const [limiteMei] = useState(81000);
-  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedFechamento, setSelectedFechamento] = useState<FechamentoMensal | null>(null);
 
   const formatCurrency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-  const fetchData = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-
-    // Lógica para fechar meses anteriores automaticamente
-    const { data: lastFechamento } = await supabase
-      .from('faturamento_mensal')
-      .select('mes, ano')
-      .eq('user_id', user.id)
-      .order('ano', { ascending: false })
-      .order('mes', { ascending: false })
-      .limit(1)
-      .single();
-
-    const today = new Date();
-    const currentMonth = today.getMonth() + 1;
-    const currentYear = today.getFullYear();
-    
-    let startMonth = lastFechamento ? lastFechamento.mes + 1 : 1;
-    let startYear = lastFechamento ? lastFechamento.ano : currentYear;
-
-    if (startMonth > 12) {
-      startMonth = 1;
-      startYear++;
-    }
-
-    for (let y = startYear; y <= currentYear; y++) {
-      const endMonth = (y < currentYear) ? 12 : currentMonth - 1;
-      for (let m = (y === startYear ? startMonth : 1); m <= endMonth; m++) {
-        const firstDay = new Date(y, m - 1, 1).toISOString();
-        const lastDay = new Date(y, m, 0).toISOString();
-        
-        const { data: vendas } = await supabase
-          .from('vendas')
-          .select('valor_total')
-          .eq('user_id', user.id)
-          .gte('created_at', firstDay)
-          .lte('created_at', lastDay);
-        
-        const faturamentoMes = vendas?.reduce((acc, v) => acc + v.valor_total, 0) || 0;
-
-        await supabase.from('faturamento_mensal').insert({
-          user_id: user.id,
-          mes: m,
-          ano: y,
-          faturamento: faturamentoMes,
-        });
-      }
-    }
-
-    // Buscar dados atualizados
-    const { data: fechamentosData, error } = await supabase
-      .from('faturamento_mensal')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('ano', { ascending: false })
-      .order('mes', { ascending: false });
-
-    if (error) {
-      showError('Erro ao buscar dados: ' + error.message);
-    } else {
-      setFechamentos(fechamentosData || []);
-      const faturamentoTotal = fechamentosData?.filter(f => f.ano === currentYear).reduce((acc, f) => acc + f.faturamento, 0) || 0;
-      setFaturamentoAnual(faturamentoTotal);
-    }
-    setLoading(false);
-  }, [user]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const handleSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['fechamentos', user?.id] });
+  };
 
   const handleEdit = (fechamento: FechamentoMensal) => {
     setSelectedFechamento(fechamento);
@@ -174,7 +181,7 @@ const FecharCaixa = () => {
       <TransferenciaDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        onSuccess={fetchData}
+        onSuccess={handleSuccess}
         fechamento={selectedFechamento}
       />
       <div className="space-y-6">
