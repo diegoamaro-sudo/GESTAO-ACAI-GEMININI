@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Package, User } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { User } from "lucide-react";
 
 type HeaderProps = {
   onNovaVendaClick: () => void;
@@ -8,20 +7,8 @@ type HeaderProps = {
 };
 
 const Header = ({ onNovaVendaClick, onNovaDespesaClick }: HeaderProps) => {
-  const { config } = useAuth();
-
   return (
-    <header className="sticky top-0 z-30 flex h-24 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
-      <div className="flex items-center gap-4 font-semibold">
-        {config?.logo_url ? (
-            <img src={config.logo_url} alt="Logo da Loja" className="h-20 w-auto object-contain" />
-          ) : (
-            <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-              <Package className="h-5 w-5 text-primary-foreground" />
-            </div>
-        )}
-        <span className="text-xl font-bold tracking-wider uppercase">{config?.nome_loja || 'Açaí Manager'}</span>
-      </div>
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
       <div className="ml-auto flex items-center gap-4">
         <Button 
           onClick={onNovaVendaClick}
