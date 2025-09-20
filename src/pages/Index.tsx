@@ -39,28 +39,37 @@ const fetchDashboardData = async () => {
     .from('vendas')
     .select('valor_total, lucro_total, created_at, canais_venda(nome), itens_venda(quantidade, produtos(nome))', { count: 'exact' })
     .gte('created_at', startOfMonth)
-    .lte('created_at', endOfMonth); // Ensure sales are within the current month
+    .lte('created_at', endOfMonth);
 
   if (vendasError) throw new Error(vendasError.message);
 
-  // Fetch Despesas (incluindo as de vendas)
-  const { data: despesasMes, error: despesasError } = await supabase
+  // Fetch Despesas OPERACIONAIS (sem venda_id)
+  const { data: despesasOperacionaisMes, error: despesasOperacionaisError } = await supabase
     .from('despesas')
     .select('valor, tipos_despesa(nome, emoji)')
     .eq('status', 'paga')
+    .is('venda_id', null) // Filtra apenas despesas não vinculadas a vendas
     .gte('data', startOfMonth)
     .lte('data', endOfMonth);
 
-  if (despesasError) throw new Error(despesasError.message);
+  if (despesasOperacionaisError) throw new Error(despesasOperacionaisError.message);
 
-  const totalDespesasMes = despesasMes?.reduce((acc, d) => acc + d.valor, 0) || 0;
+  const totalDespesasOperacionaisMes = despesasOperacionaisMes?.reduce((acc, d) => acc + d.valor, 0) || 0;
 
   const vendasHoje = vendas?.filter(v => v.created_at >= startOfDay) || [];
   const salesDay = vendasHoje.reduce((acc, v) => acc + v.valor_total, 0);
-  const profitDay = vendasHoje.reduce((acc, v) => acc + v.lucro_total, 0);
-  
+  const profitDayVendas = vendasHoje.reduce((acc, v) => acc + v.lucro_total, 0) || 0; // Lucro bruto das vendas do dia
+
   const salesMonth = vendas?.reduce((acc, v) => acc + v.valor_total, 0) || 0;
-  const profitMonth = vendas?.reduce((acc, v) => acc + v.lucro_total, 0) || 0;
+  const profitMonthVendas = vendas?.reduce((acc, v) => acc + v.lucro_total, 0) || 0; // Lucro bruto das vendas do mês
+
+  // Lucro líquido do dia (lucro das vendas - despesas operacionais proporcionais ao dia, simplificado aqui)
+  // Para simplificar, vamos considerar o lucro do dia como o lucro bruto das vendas do dia.
+  // Um cálculo mais preciso de despesas operacionais diárias seria complexo e pode ser adicionado se necessário.
+  const profitDay = profitDayVendas; 
+
+  // Lucro líquido do mês (lucro das vendas - despesas operacionais do mês)
+  const profitMonth = profitMonthVendas - totalDespesasOperacionaisMes;
 
   const overallProfitMargin = salesMonth > 0 ? (profitMonth / salesMonth) * 100 : 0;
 
@@ -71,7 +80,7 @@ const fetchDashboardData = async () => {
     salesMonth,
     profitMonth,
     salesMonthCount: salesMonthCount || 0,
-    totalDespesasMes,
+    totalDespesasMes: totalDespesasOperacionaisMes, // Agora reflete apenas despesas operacionais
     overallProfitMargin,
   };
 
@@ -87,9 +96,12 @@ const fetchDashboardData = async () => {
     const dayData = dailyData.find(d => d.name === dateStr);
     if (dayData) {
       dayData.vendas += venda.valor_total || 0;
-      dayData.lucro += venda.lucro_total || 0;
+      dayData.lucro += venda.lucro_total || 0; // Lucro bruto da venda
     }
   });
+  // Subtrair despesas operacionais diárias do lucro diário no gráfico (simplificado)
+  // Para um cálculo mais preciso, precisaríamos distribuir as despesas operacionais pelos dias.
+  // Por enquanto, o gráfico de desempenho mostrará o lucro bruto das vendas.
 
   // Sales by Channel Chart Data
   const salesByChannel = vendas?.reduce((acc, venda) => {
@@ -99,8 +111,8 @@ const fetchDashboardData = async () => {
   }, {} as Record<string, number>);
   const channelData = Object.entries(salesByChannel || {}).map(([name, value]) => ({ name, value }));
 
-  // Top Expenses Chart Data
-  const expensesByType = despesasMes?.reduce((acc, despesa) => {
+  // Top Expenses Chart Data (apenas despesas operacionais)
+  const expensesByType = despesasOperacionaisMes?.reduce((acc, despesa) => {
     const typeName = despesa.tipos_despesa?.nome || 'Outros';
     acc[typeName] = (acc[typeName] || 0) + despesa.valor;
     return acc;
