@@ -7,8 +7,8 @@ import TopExpensesChart from "@/components/TopExpensesChart"; // Novo componente
 import TopProductsList from "@/components/TopProductsList"; // Novo componente
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import jsPDF from 'jspdf'; // Revertido para importação padrão (default export)
-import 'jspdf-autotable';
+// import jsPDF from 'jspdf'; // Removido daqui
+// import 'jspdf-autotable'; // Removido daqui
 import { showError, showSuccess } from '@/utils/toast';
 
 const MetricCard = ({ title, value, subtext, icon: Icon, gradient }: { title: string, value: string, subtext: string, icon: React.ElementType, gradient: string }) => (
@@ -181,11 +181,15 @@ const Index = () => {
   const profitDayMargin = stats.salesDay > 0 ? ((stats.profitDay / stats.salesDay) * 100).toFixed(1) : '0.0';
   const profitMonthMargin = stats.salesMonth > 0 ? ((stats.profitMonth / stats.salesMonth) * 100).toFixed(1) : '0.0';
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => { // Made async to allow dynamic imports
     if (!data) {
       showError('Dados do dashboard ainda não carregados. Por favor, aguarde e tente novamente.');
       return;
     }
+
+    // Dynamic imports inside the function
+    const { default: jsPDF } = await import('jspdf');
+    await import('jspdf-autotable');
 
     const doc = new jsPDF();
     const acaiPurple = [76, 29, 149]; // Cor roxa do açaí
