@@ -13,8 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { showSuccess, showError } from '@/utils/toast';
-import { ChevronsUpDown, PlusCircle, Trash2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { PlusCircle, Trash2 } from 'lucide-react';
 
 type Produto = { id: string; nome: string; valor_venda: number; custo_unitario: number };
 type CanalVenda = { id: string; nome: string; taxa: number };
@@ -89,7 +88,7 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
     const lucroParcial = subtotalProdutos - custoTotalProdutos;
 
     const canalId = form.watch('canal_venda_id');
-    const frete = form.watch('frete');
+    const frete = form.watch('frete') || 0;
     const canal = canaisVenda.find(c => c.id === canalId);
     const taxaPercentual = canal ? canal.taxa / 100 : 0;
     
@@ -149,7 +148,7 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Registrar Nova Venda</DialogTitle>
           <DialogDescription>Adicione produtos e preencha os detalhes da venda.</DialogDescription>
@@ -200,7 +199,7 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
                     <TableRow key={item.produto.id}>
                       <TableCell>{item.produto.nome}</TableCell>
                       <TableCell>
-                        <Input type="number" value={item.quantidade} onChange={e => updateQuantidade(item.produto.id, parseInt(e.target.value))} className="h-8 w-16" />
+                        <Input type="number" value={item.quantidade} onChange={e => updateQuantidade(item.produto.id, parseInt(e.target.value) || 1)} className="h-8 w-16" />
                       </TableCell>
                       <TableCell>{item.subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
                       <TableCell>
@@ -243,7 +242,7 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
                     <FormItem>
                       <FormLabel>Frete</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" placeholder="R$ 0,00" {...field} />
+                        <Input type="number" step="0.01" placeholder="R$ 0,00" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -254,7 +253,7 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
             <div className="mt-4 space-y-2 rounded-lg border p-4">
               <div className="flex justify-between"><span className="text-muted-foreground">Subtotal Produtos:</span> <span>{subtotalProdutos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Taxa do Canal:</span> <span className="text-red-500">-{taxaCanal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Frete:</span> <span>{form.watch('frete').toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Frete:</span> <span>{(form.watch('frete') || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
               <div className="flex justify-between font-bold text-lg"><span >Valor Total:</span> <span>{valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
               <div className="flex justify-between font-semibold text-green-600"><span>Lucro da Venda:</span> <span>{lucroTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
             </div>

@@ -116,7 +116,7 @@ export const NovaDespesaDialog = ({ open, onOpenChange, onDespesaAdicionada }: N
                 <FormItem>
                   <FormLabel>Valor</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="R$ 0,00" {...field} />
+                    <Input type="number" step="0.01" placeholder="R$ 0,00" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

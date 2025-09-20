@@ -21,7 +21,7 @@ const iconMap = {
 
 const formSchema = z.object({
   nome: z.string().min(2, { message: 'O nome do canal é obrigatório.' }),
-  taxa: z.coerce.number().min(0, { message: 'A taxa deve ser um valor positivo.' }),
+  taxa: z.coerce.number().min(0, { message: 'A taxa deve ser um valor positivo.' }).default(0),
   icon: z.enum(['Instagram', 'Truck', 'Phone', 'Store']),
 });
 
@@ -119,7 +119,7 @@ export const CanalVendaDialog = ({ open, onOpenChange, onSuccess, canal }: Canal
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Taxa (%)</FormLabel>
-                  <FormControl><Input type="number" step="0.01" placeholder="Ex: 12.5" {...field} /></FormControl>
+                  <FormControl><Input type="number" step="0.01" placeholder="Ex: 12.5" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}

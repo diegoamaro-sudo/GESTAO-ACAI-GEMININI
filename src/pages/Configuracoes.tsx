@@ -168,7 +168,7 @@ const Configuracoes = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Limite Anual MEI</FormLabel>
-                      <FormControl><Input type="number" step="1000" placeholder="81000" {...field} /></FormControl>
+                      <FormControl><Input type="number" step="1000" placeholder="81000" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

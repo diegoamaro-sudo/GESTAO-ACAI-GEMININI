@@ -151,7 +151,7 @@ export const ComposicaoDialog = ({ open, onOpenChange, onSuccess, composicao }: 
     <>
       <CustoItemDialog open={isCustoItemDialogOpen} onOpenChange={setIsCustoItemDialogOpen} onSave={handleSaveCustoItem} item={selectedCustoItem} />
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{composicao ? 'Editar Ficha Técnica' : 'Nova Ficha Técnica'}</DialogTitle>
             <DialogDescription>Crie a composição de custos para um produto final.</DialogDescription>
