@@ -9,7 +9,7 @@ import { FileDown, Edit } from 'lucide-react';
 import MeiStatus from '@/components/MeiStatus';
 import { TransferenciaDialog } from '@/components/TransferenciaDialog';
 import { showSuccess, showError } from '@/utils/toast';
-import jsPDF from 'jspdf'; // Revertido para importação padrão
+import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 type FechamentoMensal = {
@@ -17,13 +17,18 @@ type FechamentoMensal = {
   mes: number;
   ano: number;
   faturamento: number;
+  lucro_pj_distribuido?: number; // Adicionado para consistência, se existir no DB
   transferencia_pf: number;
 };
 
 const fetchFechamentos = async (userId: string | undefined) => {
   if (!userId) return { fechamentos: [], faturamentoAnual: 0 };
 
-  // Lógica para fechar meses anteriores automaticamente
+  const today = new Date();
+  const currentMonth = today.getMonth() + 1;
+  const currentYear = today.getFullYear();
+
+  // --- 1. Garantir que meses anteriores sejam fechados no faturamento_mensal ---
   const { data: lastFechamento } = await supabase
     .from('faturamento_mensal')
     .select('mes, ano')
@@ -33,10 +38,6 @@ const fetchFechamentos = async (userId: string | undefined) => {
     .limit(1)
     .single();
 
-  const today = new Date();
-  const currentMonth = today.getMonth() + 1;
-  const currentYear = today.getFullYear();
-  
   let startMonth = lastFechamento ? lastFechamento.mes + 1 : 1;
   let startYear = lastFechamento ? lastFechamento.ano : currentYear;
 
@@ -46,48 +47,109 @@ const fetchFechamentos = async (userId: string | undefined) => {
   }
 
   for (let y = startYear; y <= currentYear; y++) {
-    const endMonth = (y < currentYear) ? 12 : currentMonth - 1;
+    const endMonth = (y < currentYear) ? 12 : currentMonth - 1; // Fechar apenas até o mês anterior
     for (let m = (y === startYear ? startMonth : 1); m <= endMonth; m++) {
       const firstDay = new Date(y, m - 1, 1).toISOString();
       const lastDay = new Date(y, m, 0).toISOString();
       
-      const { data: vendas } = await supabase
+      const { data: vendasMesFechado } = await supabase
         .from('vendas')
         .select('valor_total')
         .eq('user_id', userId)
         .gte('created_at', firstDay)
         .lte('created_at', lastDay);
       
-      const faturamentoMes = vendas?.reduce((acc, v) => acc + v.valor_total, 0) || 0;
+      const faturamentoMes = vendasMesFechado?.reduce((acc, v) => acc + v.valor_total, 0) || 0;
 
-      await supabase.from('faturamento_mensal').insert({
-        user_id: userId,
-        mes: m,
-        ano: y,
-        faturamento: faturamentoMes,
-      });
+      const { data: existingEntry } = await supabase
+        .from('faturamento_mensal')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('mes', m)
+        .eq('ano', y)
+        .single();
+
+      if (!existingEntry) {
+        await supabase.from('faturamento_mensal').insert({
+          user_id: userId,
+          mes: m,
+          ano: y,
+          faturamento: faturamentoMes,
+        });
+      } else {
+        // Opcional: Atualizar faturamento de meses já fechados se houver alteração
+        await supabase.from('faturamento_mensal').update({ faturamento: faturamentoMes }).eq('id', existingEntry.id);
+      }
     }
   }
 
-  // Buscar dados atualizados
-  const { data: fechamentosData, error } = await supabase
+  // --- 2. Buscar todos os fechamentos do ano corrente (incluindo os recém-criados) ---
+  const { data: fechamentosData, error: fechamentosError } = await supabase
     .from('faturamento_mensal')
     .select('*')
     .eq('user_id', userId)
-    .order('ano', { ascending: false })
+    .eq('ano', currentYear)
     .order('mes', { ascending: false });
 
-  if (error) {
-    throw new Error('Erro ao buscar dados: ' + error.message);
+  if (fechamentosError) {
+    throw new Error('Erro ao buscar dados de fechamento mensal: ' + fechamentosError.message);
   }
   
-  const faturamentoAnual = fechamentosData?.filter(f => f.ano === currentYear).reduce((acc, f) => acc + f.faturamento, 0) || 0;
-  
-  return { fechamentos: fechamentosData || [], faturamentoAnual };
+  // Calcular faturamento anual a partir dos meses já fechados
+  const faturamentoAnualFromClosedMonths = fechamentosData?.reduce((acc, f) => acc + f.faturamento, 0) || 0;
+
+  // --- 3. Buscar vendas do MÊS ATUAL (que ainda não está em faturamento_mensal) ---
+  const firstDayCurrentMonth = new Date(currentYear, currentMonth - 1, 1).toISOString();
+  const lastDayCurrentMonth = new Date(currentYear, currentMonth, 0).toISOString();
+
+  const { data: vendasCurrentMonth, error: vendasCurrentMonthError } = await supabase
+    .from('vendas')
+    .select('valor_total')
+    .eq('user_id', userId)
+    .gte('created_at', firstDayCurrentMonth)
+    .lte('created_at', lastDayCurrentMonth);
+
+  if (vendasCurrentMonthError) {
+    throw new Error('Erro ao buscar vendas do mês atual: ' + vendasCurrentMonthError.message);
+  }
+
+  const faturamentoCurrentMonth = vendasCurrentMonth?.reduce((acc, v) => acc + v.valor_total, 0) || 0;
+
+  // --- 4. Combinar para o faturamento anual total ---
+  const faturamentoAnualTotal = faturamentoAnualFromClosedMonths + faturamentoCurrentMonth;
+
+  // --- 5. Preparar a lista de fechamentos para exibição na tabela ---
+  let allFechamentos: FechamentoMensal[] = [...(fechamentosData || [])];
+  const currentMonthEntryIndex = allFechamentos.findIndex(f => f.mes === currentMonth && f.ano === currentYear);
+
+  if (currentMonthEntryIndex === -1) {
+    // Adicionar uma entrada temporária para o mês atual se não existir
+    allFechamentos.push({
+      id: `temp-${currentYear}-${currentMonth}`, // ID temporário
+      mes: currentMonth,
+      ano: currentYear,
+      faturamento: faturamentoCurrentMonth,
+      transferencia_pf: 0, // Valor padrão para o mês atual
+    });
+  } else {
+    // Atualizar o faturamento do mês atual com o valor em tempo real
+    allFechamentos[currentMonthEntryIndex] = {
+      ...allFechamentos[currentMonthEntryIndex],
+      faturamento: faturamentoCurrentMonth,
+    };
+  }
+
+  // Ordenar por ano e mês decrescente
+  allFechamentos.sort((a, b) => {
+    if (b.ano !== a.ano) return b.ano - a.ano;
+    return b.mes - a.mes;
+  });
+
+  return { fechamentos: allFechamentos, faturamentoAnual: faturamentoAnualTotal };
 };
 
 const FecharCaixa = () => {
-  const { user } = useAuth();
+  const { user, config } = useAuth(); // Obter config do AuthContext
   const queryClient = useQueryClient();
   
   const { data, isLoading: loading } = useQuery({
@@ -99,7 +161,7 @@ const FecharCaixa = () => {
   const fechamentos = data?.fechamentos || [];
   const faturamentoAnual = data?.faturamentoAnual || 0;
 
-  const [limiteMei] = useState(81000);
+  const limiteMei = config?.limite_mei || 81000; // Usar o limite do config, com fallback
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedFechamento, setSelectedFechamento] = useState<FechamentoMensal | null>(null);
 
@@ -218,7 +280,7 @@ const FecharCaixa = () => {
                       <TableCell className="text-right">{formatCurrency(f.faturamento)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(f.transferencia_pf)}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(f)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(f)} disabled={f.id.startsWith('temp-')}>
                           <Edit className="h-4 w-4" />
                         </Button>
                       </TableCell>
