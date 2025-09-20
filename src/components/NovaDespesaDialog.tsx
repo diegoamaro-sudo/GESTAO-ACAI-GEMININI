@@ -66,6 +66,7 @@ const fetchTiposDespesa = async (userId: string) => {
 };
 
 export const NovaDespesaDialog = ({ open, onOpenChange, onDespesaAdicionada, despesa }: NovaDespesaDialogProps) => {
+  console.log("NovaDespesaDialog renderizado, open:", open); // Adicionado para depuração
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);

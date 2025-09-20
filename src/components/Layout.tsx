@@ -35,7 +35,10 @@ const Layout = ({ children }: { children: ReactNode }) => {
         <div className="flex flex-col flex-1 md:pl-60">
           <Header 
             onNovaVendaClick={() => setIsVendaDialogOpen(true)}
-            onNovaDespesaClick={() => setIsDespesaDialogOpen(true)}
+            onNovaDespesaClick={() => {
+              console.log("Header: Botão 'Nova Despesa' clicado, abrindo diálogo."); // Adicionado para depuração
+              setIsDespesaDialogOpen(true);
+            }}
           />
           <main className="flex-1 p-4 sm:px-6 sm:py-8">
             {children}

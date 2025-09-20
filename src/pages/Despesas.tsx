@@ -110,6 +110,7 @@ const Despesas = () => {
   };
 
   const handleAddNew = () => {
+    console.log("handleAddNew chamado na página Despesas, abrindo diálogo."); // Adicionado para depuração
     setDespesaToEdit(null);
     setIsNovaDespesaDialogOpen(true);
   };
