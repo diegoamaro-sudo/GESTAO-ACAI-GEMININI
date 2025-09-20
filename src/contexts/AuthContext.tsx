@@ -40,7 +40,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    const setData = async (session: Session | null) => {
+    setLoading(true);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
@@ -49,23 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setConfig(null);
       }
-    };
-
-    const checkInitialSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        await setData(session);
-      } catch (error) {
-        console.error("Erro ao verificar a sessão inicial:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkInitialSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      await setData(session);
+      setLoading(false);
     });
 
     return () => {
