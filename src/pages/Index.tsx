@@ -1,35 +1,46 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "lucide-react";
+import { DollarSign, MinusCircle, TrendingUp } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
-import RevenueChart from "@/components/RevenueChart";
-import TransactionsChart from "@/components/TransactionsChart";
+import { NovaDespesaDialog } from "@/components/NovaDespesaDialog";
+import { NovaVendaDialog } from "@/components/NovaVendaDialog";
+import SalesChart from "@/components/SalesChart";
+import ChannelChart from "@/components/ChannelChart";
 
 const Index = () => {
   const [stats, setStats] = useState({
+    salesMonth: 0,
     profitMonth: 0,
     expensesMonth: 0,
+    salesMonthCount: 0,
   });
-  const [revenueData, setRevenueData] = useState([]);
+  const [chartData, setChartData] = useState([]);
+  const [channelData, setChannelData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isDespesaDialogOpen, setIsDespesaDialogOpen] = useState(false);
+  const [isVendaDialogOpen, setIsVendaDialogOpen] = useState(false);
 
   const formatCurrency = (value: number) => {
-    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
     const today = new Date();
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    
-    const { data: vendasMes, error: vendasError } = await supabase
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const { data: vendasMes, error: vendasError, count: salesMonthCount } = await supabase
       .from('vendas')
-      .select('valor_total, lucro_total, created_at')
+      .select('valor_total, lucro_total, created_at, canais_venda(nome)', { count: 'exact' })
       .gte('created_at', startOfMonth.toISOString());
 
     const { data: despesasMes, error: despesasError } = await supabase
       .from('despesas')
-      .select('valor')
+      .select('valor, data')
       .gte('data', startOfMonth.toISOString().split('T')[0]);
 
     if (vendasError || despesasError) {
@@ -38,16 +49,42 @@ const Index = () => {
       return;
     }
 
+    const salesMonth = vendasMes?.reduce((acc, v) => acc + (v.valor_total || 0), 0) || 0;
     const profitMonth = vendasMes?.reduce((acc, v) => acc + (v.lucro_total || 0), 0) || 0;
     const expensesMonth = despesasMes?.reduce((acc, d) => acc + (d.valor || 0), 0) || 0;
-    setStats({ profitMonth, expensesMonth });
+    setStats({ salesMonth, profitMonth, expensesMonth, salesMonthCount: salesMonthCount || 0 });
 
-    const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May'];
-    const dummyRevenueData = monthLabels.map(month => ({
-      name: month,
-      vendas: Math.floor(Math.random() * 5000) + 1000,
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      return d;
+    }).reverse();
+
+    const dailyData = last7Days.map(d => ({
+      name: d.toLocaleDateString('pt-BR', { weekday: 'short' }),
+      date: d.toISOString().split('T')[0],
+      vendas: 0,
+      lucro: 0,
     }));
-    setRevenueData(dummyRevenueData);
+
+    vendasMes?.filter(v => new Date(v.created_at) >= sevenDaysAgo).forEach(venda => {
+      const vendaDate = venda.created_at.split('T')[0];
+      const dayData = dailyData.find(d => d.date === vendaDate);
+      if (dayData) {
+        dayData.vendas += venda.valor_total || 0;
+        dayData.lucro += venda.lucro_total || 0;
+      }
+    });
+    setChartData(dailyData);
+
+    const salesByChannel = vendasMes?.reduce((acc, venda) => {
+      const channelName = venda.canais_venda?.nome || 'N/A';
+      acc[channelName] = (acc[channelName] || 0) + (venda.valor_total || 0);
+      return acc;
+    }, {} as Record<string, number>);
+
+    const channelChartData = Object.entries(salesByChannel || {}).map(([name, value]) => ({ name, value }));
+    setChannelData(channelChartData);
 
     setLoading(false);
   }, []);
@@ -56,61 +93,94 @@ const Index = () => {
     fetchStats();
   }, [fetchStats]);
 
-  const transactionsData = [
-    { name: 'Profit', value: stats.profitMonth },
-    { name: 'Expenses', value: stats.expensesMonth },
-  ];
-
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <header className="mb-8">
-        <Card>
-          <div className="flex items-center justify-between p-4">
-            <h1 className="text-2xl font-bold">Finance preview</h1>
-            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-              <User className="h-6 w-6 text-primary-foreground" />
-            </div>
+    <>
+      <NovaDespesaDialog 
+        open={isDespesaDialogOpen} 
+        onOpenChange={setIsDespesaDialogOpen}
+        onDespesaAdicionada={fetchStats}
+      />
+      <NovaVendaDialog
+        open={isVendaDialogOpen}
+        onOpenChange={setIsVendaDialogOpen}
+        onVendaAdicionada={fetchStats}
+      />
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between space-y-2">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight animate-fade-in-up">Dashboard</h1>
+            <p className="text-muted-foreground animate-fade-in-up" style={{ animationDelay: '50ms' }}>Acompanhe suas vendas e performance em tempo real</p>
           </div>
-        </Card>
-      </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-muted-foreground font-normal">Profit</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? <div className="h-12 w-32 animate-pulse bg-muted rounded"></div> : 
-              <p className="text-4xl font-bold">{formatCurrency(stats.profitMonth)}</p>
-            }
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-muted-foreground font-normal">Expenses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? <div className="h-12 w-32 animate-pulse bg-muted rounded"></div> : 
-              <p className="text-4xl font-bold">{formatCurrency(stats.expensesMonth)}</p>
-            }
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
-          {loading ? <Card><div className="h-[374px] w-full animate-pulse bg-card rounded-lg"></div></Card> :
-            <RevenueChart data={revenueData} />
-          }
+          <div className="flex items-center space-x-2">
+            <Button onClick={() => setIsVendaDialogOpen(true)} className="transition-transform duration-200 hover:scale-105 active:scale-95">Nova Venda</Button>
+            <Button variant="outline" onClick={() => setIsDespesaDialogOpen(true)} className="transition-transform duration-200 hover:scale-105 active:scale-95">Nova Despesa</Button>
+          </div>
         </div>
-        <div>
-          {loading ? <Card><div className="h-[374px] w-full animate-pulse bg-card rounded-lg"></div></Card> :
-            <TransactionsChart data={transactionsData.filter(d => d.value > 0)} />
-          }
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Card className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Vendas do Mês</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : 
+                <>
+                  <div className="text-2xl font-bold">{formatCurrency(stats.salesMonth)}</div>
+                  <p className="text-xs text-muted-foreground">{stats.salesMonthCount} vendas realizadas</p>
+                </>
+              }
+            </CardContent>
+          </Card>
+          <Card className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Despesas do Mês</CardTitle>
+              <MinusCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : 
+                <>
+                  <div className="text-2xl font-bold">{formatCurrency(stats.expensesMonth)}</div>
+                  <p className="text-xs text-muted-foreground">Custos e taxas das vendas</p>
+                </>
+              }
+            </CardContent>
+          </Card>
+           <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Lucro do Mês</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : 
+                <>
+                  <div className="text-2xl font-bold text-success">{formatCurrency(stats.profitMonth)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Margem: {stats.salesMonth > 0 ? ((stats.profitMonth / stats.salesMonth) * 100).toFixed(1) : '0.0'}%
+                  </p>
+                </>
+              }
+            </CardContent>
+          </Card>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {loading ? (
+            <>
+              <Card className="col-span-1 lg:col-span-2"><CardContent className="pt-6"><div className="h-[350px] w-full animate-pulse bg-muted rounded"></div></CardContent></Card>
+              <Card><CardContent className="pt-6"><div className="h-[350px] w-full animate-pulse bg-muted rounded"></div></CardContent></Card>
+            </>
+          ) : (
+            <>
+              <div className="col-span-1 lg:col-span-2 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+                <SalesChart data={chartData} />
+              </div>
+              <div className="animate-fade-in-up" style={{ animationDelay: '500ms' }}>
+                 <ChannelChart data={channelData} />
+              </div>
+            </>
+          )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
