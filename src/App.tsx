@@ -13,6 +13,7 @@ import Vendas from "./pages/Vendas";
 import Produtos from "./pages/Produtos";
 import Despesas from "./pages/Despesas";
 import Configuracoes from "./pages/Configuracoes";
+import FichaTecnica from "./pages/FichaTecnica";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const AppRoutes = () => {
         <Route path="/" element={<Index />} />
         <Route path="/vendas" element={<Vendas />} />
         <Route path="/produtos" element={<Produtos />} />
+        <Route path="/ficha-tecnica" element={<FichaTecnica />} />
         <Route path="/despesas" element={<Despesas />} />
         <Route path="/configuracoes" element={<Configuracoes />} />
       </Route>
