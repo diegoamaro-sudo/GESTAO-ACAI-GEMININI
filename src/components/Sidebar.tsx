@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, ShoppingCart, Package, DollarSign, Settings, ClipboardList, Building2, LogOut } from 'lucide-react';
+import { Home, ShoppingCart, Package, DollarSign, Settings, ClipboardList, Building2, LogOut, Archive } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from './ui/button';
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/ficha-tecnica', icon: ClipboardList, label: 'Ficha Técnica' },
   { href: '/fornecedores', icon: Building2, label: 'Fornecedores' },
   { href: '/despesas', icon: DollarSign, label: 'Despesas' },
+  { href: '/fechar-caixa', icon: Archive, label: 'Fechar Caixa' },
   { href: '/configuracoes', icon: Settings, label: 'Configurações' },
 ];
 
