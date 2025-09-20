@@ -9,7 +9,7 @@ import { FileDown, Edit } from 'lucide-react';
 import MeiStatus from '@/components/MeiStatus';
 import { TransferenciaDialog } from '@/components/TransferenciaDialog';
 import { showSuccess, showError } from '@/utils/toast';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf'; // Alterado para importação nomeada
 import 'jspdf-autotable';
 
 type FechamentoMensal = {

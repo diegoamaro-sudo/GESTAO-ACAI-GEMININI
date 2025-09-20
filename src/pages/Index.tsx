@@ -7,7 +7,7 @@ import TopExpensesChart from "@/components/TopExpensesChart"; // Novo componente
 import TopProductsList from "@/components/TopProductsList"; // Novo componente
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf'; // Alterado para importação nomeada
 import 'jspdf-autotable';
 import { showError, showSuccess } from '@/utils/toast'; // Importar showSuccess e showError
 
