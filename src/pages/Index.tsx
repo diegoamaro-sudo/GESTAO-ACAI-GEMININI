@@ -140,8 +140,8 @@ const fetchDashboardData = async () => {
     if (typeName === 'Taxa de Canal de Venda' && despesa.venda_id && despesa.vendas?.canais_venda?.nome) {
       typeName = `Taxa: ${despesa.vendas.canais_venda.nome}`;
     } else if (typeName === 'Custo de Produto Vendido') {
-      // Usa a descrição específica da despesa para custos de produtos
-      typeName = despesa.descricao;
+      // Agrega todos os custos de produtos vendidos sob um único rótulo
+      typeName = 'Custo dos Produtos Vendidos';
     }
     // Para outros tipos, mantém o nome do tipo de despesa
 
