@@ -3,6 +3,7 @@ import { Home, ShoppingCart, Package, DollarSign, Settings, ClipboardList, Build
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from './ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 const navItems = [
   { href: '/', icon: Home, label: 'Dashboard' },
@@ -18,6 +19,7 @@ const navItems = [
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { config } = useAuth();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -28,9 +30,13 @@ const Sidebar = () => {
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-white/10 bg-card md:flex">
       <div className="flex h-16 items-center border-b border-white/10 px-6">
         <Link to="/" className="flex items-center gap-2 font-semibold">
-          <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-            <Package className="h-5 w-5 text-primary-foreground" />
-          </div>
+          {config?.logo_url ? (
+            <img src={config.logo_url} alt="Logo da Loja" className="h-8 w-auto object-contain" />
+          ) : (
+            <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
+              <Package className="h-5 w-5 text-primary-foreground" />
+            </div>
+          )}
         </Link>
       </div>
       <div className="flex flex-1 flex-col justify-between">
