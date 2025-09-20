@@ -18,6 +18,7 @@ import { PlusCircle, Trash2 } from 'lucide-react';
 type Produto = { id: string; nome: string; valor_venda: number; custo_unitario: number };
 type CanalVenda = { id: string; nome: string; taxa: number };
 type ItemVenda = { produto: Produto; quantidade: number; subtotal: number };
+type TipoDespesa = { id: string; nome: string; emoji: string }; // Adicionado tipo para TipoDespesa
 
 const formSchema = z.object({
   canal_venda_id: z.string().uuid({ message: 'Selecione um canal de venda.' }),
@@ -37,22 +38,65 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
   const [canaisVenda, setCanaisVenda] = useState<CanalVenda[]>([]);
   const [itensVenda, setItensVenda] = useState<ItemVenda[]>([]);
   const [openPopover, setOpenPopover] = useState(false);
+  const [tipoDespesaCustoId, setTipoDespesaCustoId] = useState<string | null>(null);
+  const [tipoDespesaTaxaId, setTipoDespesaTaxaId] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { frete: 0 },
   });
 
+  // Função para buscar ou criar tipos de despesa padrão
+  const getOrCreateTipoDespesa = async (userId: string, nome: string, emoji: string) => {
+    let { data: tipo, error } = await supabase
+      .from('tipos_despesa')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('nome', nome)
+      .single();
+
+    if (error && error.code === 'PGRST116') { // No rows found
+      const { data: newTipo, error: insertError } = await supabase
+        .from('tipos_despesa')
+        .insert({ user_id: userId, nome, emoji })
+        .select('id')
+        .single();
+      if (insertError) throw insertError;
+      tipo = newTipo;
+    } else if (error) {
+      throw error;
+    }
+    return tipo?.id;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
-      if (!open) return;
-      const { data: produtosData } = await supabase.from('produtos').select('id, nome, valor_venda, custo_unitario');
-      const { data: canaisData } = await supabase.from('canais_venda').select('id, nome, taxa');
-      setProdutos(produtosData || []);
-      setCanaisVenda(canaisData || []);
+      if (!open || !user) return;
+      
+      try {
+        const [produtosRes, canaisRes] = await Promise.all([
+          supabase.from('produtos').select('id, nome, valor_venda, custo_unitario'),
+          supabase.from('canais_venda').select('id, nome, taxa'),
+        ]);
+
+        if (produtosRes.error) throw produtosRes.error;
+        if (canaisRes.error) throw canaisRes.error;
+
+        setProdutos(produtosRes.data || []);
+        setCanaisVenda(canaisRes.data || []);
+
+        // Buscar ou criar tipos de despesa padrão
+        const custoId = await getOrCreateTipoDespesa(user.id, 'Custo de Produto Vendido', '📦');
+        const taxaId = await getOrCreateTipoDespesa(user.id, 'Taxa de Canal de Venda', '💸');
+        setTipoDespesaCustoId(custoId);
+        setTipoDespesaTaxaId(taxaId);
+
+      } catch (error: any) {
+        showError('Erro ao carregar dados: ' + error.message);
+      }
     };
     fetchData();
-  }, [open]);
+  }, [open, user]);
 
   const addProduto = (produto: Produto) => {
     setItensVenda((prev) => {
@@ -82,26 +126,26 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
     setItensVenda((prev) => prev.filter((item) => item.produto.id !== produtoId));
   };
 
-  const { subtotalProdutos, lucroParcial, taxaCanal, valorTotal, lucroTotal } = useMemo(() => {
+  const { subtotalProdutos, custoTotalProdutos, taxaCanal, valorTotal, lucroTotal } = useMemo(() => {
     const subtotalProdutos = itensVenda.reduce((acc, item) => acc + item.subtotal, 0);
     const custoTotalProdutos = itensVenda.reduce((acc, item) => acc + (item.produto.custo_unitario * item.quantidade), 0);
-    const lucroParcial = subtotalProdutos - custoTotalProdutos;
-
+    
     const canalId = form.watch('canal_venda_id');
     const frete = form.watch('frete') || 0;
     const canal = canaisVenda.find(c => c.id === canalId);
     const taxaPercentual = canal ? canal.taxa / 100 : 0;
     
     const taxaCanal = subtotalProdutos * taxaPercentual;
-    const valorTotal = subtotalProdutos + frete - taxaCanal;
-    const lucroTotal = lucroParcial - taxaCanal;
+    const valorTotalCalculado = subtotalProdutos + frete; // Faturamento bruto
+    const lucroTotalCalculado = valorTotalCalculado - custoTotalProdutos - taxaCanal; // Lucro real após custos e taxas
 
-    return { subtotalProdutos, lucroParcial, taxaCanal, valorTotal, lucroTotal };
+    return { subtotalProdutos, custoTotalProdutos, taxaCanal, valorTotal: valorTotalCalculado, lucroTotal: lucroTotalCalculado };
   }, [itensVenda, form.watch('canal_venda_id'), form.watch('frete'), canaisVenda]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user) return showError('Você precisa estar logado.');
     if (itensVenda.length === 0) return showError('Adicione pelo menos um produto à venda.');
+    if (!tipoDespesaCustoId || !tipoDespesaTaxaId) return showError('Tipos de despesa padrão não encontrados. Tente novamente.');
     
     setIsSubmitting(true);
 
@@ -111,8 +155,8 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
       frete: values.frete,
       subtotal_produtos: subtotalProdutos,
       taxa_canal: taxaCanal,
-      valor_total: valorTotal,
-      lucro_total: lucroTotal,
+      valor_total: valorTotal, // Faturamento bruto
+      lucro_total: lucroTotal, // Lucro real
     };
 
     const { data: novaVenda, error: vendaError } = await supabase.from('vendas').insert(vendaData).select().single();
@@ -136,13 +180,46 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
     if (itensError) {
       showError('Erro ao adicionar itens à venda: ' + itensError.message);
       // Here you might want to delete the created sale for consistency
-    } else {
-      showSuccess('Venda registrada com sucesso!');
-      form.reset();
-      setItensVenda([]);
-      onVendaAdicionada();
-      onOpenChange(false);
+      setIsSubmitting(false);
+      return;
     }
+
+    // Registrar despesas de custo de produtos
+    if (custoTotalProdutos > 0) {
+      const { error: custoDespesaError } = await supabase.from('despesas').insert({
+        user_id: user.id,
+        descricao: `Custo dos produtos da venda #${novaVenda.id.substring(0, 8)}`,
+        valor: custoTotalProdutos,
+        tipo_despesa_id: tipoDespesaCustoId,
+        data: new Date().toISOString().split('T')[0],
+        status: 'paga', // Custo é sempre pago na venda
+        recorrente: false,
+        venda_id: novaVenda.id, // Vincular à venda
+      });
+      if (custoDespesaError) console.error('Erro ao registrar despesa de custo:', custoDespesaError);
+    }
+
+    // Registrar despesas de taxa de canal
+    if (taxaCanal > 0) {
+      const canalNome = canaisVenda.find(c => c.id === values.canal_venda_id)?.nome || 'Canal Desconhecido';
+      const { error: taxaDespesaError } = await supabase.from('despesas').insert({
+        user_id: user.id,
+        descricao: `Taxa de ${canalNome} da venda #${novaVenda.id.substring(0, 8)}`,
+        valor: taxaCanal,
+        tipo_despesa_id: tipoDespesaTaxaId,
+        data: new Date().toISOString().split('T')[0],
+        status: 'paga', // Taxa é sempre paga na venda
+        recorrente: false,
+        venda_id: novaVenda.id, // Vincular à venda
+      });
+      if (taxaDespesaError) console.error('Erro ao registrar despesa de taxa:', taxaDespesaError);
+    }
+
+    showSuccess('Venda registrada com sucesso!');
+    form.reset();
+    setItensVenda([]);
+    onVendaAdicionada();
+    onOpenChange(false);
     setIsSubmitting(false);
   };
 
@@ -252,10 +329,11 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
             </Form>
             <div className="mt-4 space-y-2 rounded-lg border p-4">
               <div className="flex justify-between"><span className="text-muted-foreground">Subtotal Produtos:</span> <span>{subtotalProdutos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Taxa do Canal:</span> <span className="text-destructive">-{taxaCanal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Frete:</span> <span>{(form.watch('frete') || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
-              <div className="flex justify-between font-bold text-lg"><span >Valor Total:</span> <span>{valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
-              <div className="flex justify-between font-semibold text-success"><span>Lucro da Venda:</span> <span>{lucroTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
+              <div className="flex justify-between font-bold text-lg"><span >Faturamento Bruto:</span> <span>{valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Custo dos Produtos:</span> <span className="text-destructive">-{custoTotalProdutos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Taxa do Canal:</span> <span className="text-destructive">-{taxaCanal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
+              <div className="flex justify-between font-semibold text-success"><span>Lucro Líquido:</span> <span>{lucroTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
             </div>
           </div>
         </div>
