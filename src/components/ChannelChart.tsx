@@ -10,7 +10,7 @@ type ChannelChartProps = {
   data: ChannelData[];
 };
 
-const COLORS = ['#9f54ff', '#00e6e6', '#ff3399', '#aaff00', '#ff9933', '#ff3333'];
+const COLORS = ['#a855f7', '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#ef4444'];
 
 const ChannelChart = ({ data }: ChannelChartProps) => {
   return (
@@ -29,6 +29,11 @@ const ChannelChart = ({ data }: ChannelChartProps) => {
                   currency: 'BRL',
                 })
               }
+              contentStyle={{
+                backgroundColor: 'hsl(var(--background) / 0.8)',
+                borderColor: 'hsl(var(--border))',
+                backdropFilter: 'blur(4px)',
+              }}
             />
             <Pie
               data={data}

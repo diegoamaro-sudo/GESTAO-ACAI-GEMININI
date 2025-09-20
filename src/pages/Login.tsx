@@ -22,13 +22,14 @@ const Login = () => {
   }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold text-center">Açaí do Chaves - Admin</h2>
+    <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-background">
+      <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-card rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold text-center text-primary glowing-text">Açaí do Chaves - Admin</h2>
         <Auth
           supabaseClient={supabase}
           appearance={{ theme: ThemeSupa }}
           providers={[]}
+          theme="dark"
           localization={{
             variables: {
               sign_in: {

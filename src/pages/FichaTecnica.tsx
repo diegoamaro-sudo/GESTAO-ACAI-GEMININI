@@ -133,7 +133,7 @@ const FichaTecnica = () => {
                   </div>
                   <div className="p-4 flex-grow flex flex-col justify-between">
                     <h3 className="font-semibold truncate mb-2">{composicao.nome}</h3>
-                    <p className="text-sm text-red-500 font-semibold">Custo Total: {composicao.custo_total_calculado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                    <p className="text-sm text-destructive font-semibold">Custo Total: {composicao.custo_total_calculado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                   </div>
                 </Card>
               ))}
