@@ -41,6 +41,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     setLoading(true);
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        await fetchConfig(currentUser.id);
+      }
+      setLoading(false);
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       const currentUser = session?.user ?? null;
@@ -50,10 +61,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setConfig(null);
       }
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, [fetchConfig]);
 
   const refetchConfig = () => {
