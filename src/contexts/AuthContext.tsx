@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useContext, ReactNode, useCallback } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import { Session, User, Subscription } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 type ConfiguracoesUsuario = {
@@ -45,9 +45,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    let sub: Subscription | null = null;
+
+    const setupAuth = async () => {
       try {
+        // 1. Verificação Inicial
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        setSession(initialSession);
+        const currentUser = initialSession?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          await fetchConfig(currentUser.id);
+        }
+      } catch (e) {
+        console.error("Erro ao obter a sessão inicial", e);
+      } finally {
+        // Garante que o carregamento termine após a verificação inicial
+        setLoading(false);
+      }
+
+      // 2. Monitoramento Contínuo
+      const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
         setSession(session);
         const currentUser = session?.user ?? null;
         setUser(currentUser);
@@ -56,15 +74,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setConfig(null);
         }
-      } catch (error) {
-        console.error("Erro no manipulador onAuthStateChange:", error);
-      } finally {
-        setLoading(false);
-      }
-    });
+      });
+      sub = data.subscription;
+    };
+
+    setupAuth();
 
     return () => {
-      subscription?.unsubscribe();
+      // Limpa a inscrição ao desmontar o componente
+      sub?.unsubscribe();
     };
   }, [fetchConfig]);
 
