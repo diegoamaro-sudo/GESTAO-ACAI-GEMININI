@@ -21,7 +21,7 @@ const SalesChart = ({ data }: SalesChartProps) => {
       <CardContent className="pl-2">
         <ResponsiveContainer width="100%" height={350}>
           <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
             <XAxis
               dataKey="name"
               stroke="#888888"
@@ -44,9 +44,10 @@ const SalesChart = ({ data }: SalesChartProps) => {
                 })
               }
               cursor={{ fill: 'hsl(var(--muted))' }}
+              contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
             />
-            <Bar dataKey="vendas" fill="hsl(var(--primary))" name="Vendas" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="lucro" fill="hsl(var(--primary) / 0.5)" name="Lucro" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="vendas" fill="#3b82f6" name="Vendas" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="lucro" fill="#22c55e" name="Lucro" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

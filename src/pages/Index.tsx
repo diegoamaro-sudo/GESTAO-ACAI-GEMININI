@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, CreditCard, MinusCircle } from "lucide-react";
+import { DollarSign, CreditCard, MinusCircle, TrendingUp } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { NovaDespesaDialog } from "@/components/NovaDespesaDialog";
 import { NovaVendaDialog } from "@/components/NovaVendaDialog";
@@ -35,7 +35,6 @@ const Index = () => {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    // Fetch data for the whole month (for cards and channel chart)
     const { data: vendasMes, error: vendasError } = await supabase
       .from('vendas')
       .select('valor_total, lucro_total, created_at, canais_venda(nome)')
@@ -52,7 +51,6 @@ const Index = () => {
       return;
     }
 
-    // Calculate card stats
     const todayStr = today.toISOString().split('T')[0];
     const salesToday = vendasMes?.filter(v => v.created_at.startsWith(todayStr)).reduce((acc, v) => acc + (v.valor_total || 0), 0) || 0;
     const profitToday = vendasMes?.filter(v => v.created_at.startsWith(todayStr)).reduce((acc, v) => acc + (v.lucro_total || 0), 0) || 0;
@@ -62,7 +60,6 @@ const Index = () => {
     const expensesMonth = despesasMes?.reduce((acc, d) => acc + (d.valor || 0), 0) || 0;
     setStats({ salesToday, profitToday, salesMonth, profitMonth, expensesToday, expensesMonth });
 
-    // Prepare data for SalesChart (last 7 days)
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
       d.setDate(today.getDate() - i);
@@ -86,14 +83,13 @@ const Index = () => {
     });
     setChartData(dailyData);
 
-    // Prepare data for ChannelChart (current month)
     const salesByChannel = vendasMes?.reduce((acc, venda) => {
       const channelName = venda.canais_venda?.nome || 'N/A';
       acc[channelName] = (acc[channelName] || 0) + (venda.valor_total || 0);
       return acc;
     }, {} as Record<string, number>);
 
-    const channelChartData = Object.entries(salesByChannel).map(([name, value]) => ({ name, value }));
+    const channelChartData = Object.entries(salesByChannel || {}).map(([name, value]) => ({ name, value }));
     setChannelData(channelChartData);
 
     setLoading(false);
@@ -127,55 +123,55 @@ const Index = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Vendas Hoje</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold">{formatCurrency(stats.salesToday)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-blue-500">{formatCurrency(stats.salesToday)}</div>}
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Lucro Hoje</CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              <DollarSign className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold">{formatCurrency(stats.profitToday)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-green-500">{formatCurrency(stats.profitToday)}</div>}
             </CardContent>
           </Card>
            <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Despesas Hoje</CardTitle>
-              <MinusCircle className="h-4 w-4 text-muted-foreground" />
+              <MinusCircle className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold">{formatCurrency(stats.expensesToday)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-red-500">{formatCurrency(stats.expensesToday)}</div>}
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Vendas no Mês</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold">{formatCurrency(stats.salesMonth)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-blue-500">{formatCurrency(stats.salesMonth)}</div>}
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Lucro no Mês</CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              <DollarSign className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold">{formatCurrency(stats.profitMonth)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-green-500">{formatCurrency(stats.profitMonth)}</div>}
             </CardContent>
           </Card>
            <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Despesas no Mês</CardTitle>
-              <MinusCircle className="h-4 w-4 text-muted-foreground" />
+              <MinusCircle className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold">{formatCurrency(stats.expensesMonth)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-red-500">{formatCurrency(stats.expensesMonth)}</div>}
             </CardContent>
           </Card>
         </div>

@@ -79,8 +79,8 @@ const Vendas = () => {
                   <TableCell>
                     <Badge variant="outline">{venda.canais_venda?.nome || 'N/A'}</Badge>
                   </TableCell>
-                  <TableCell className="text-right font-medium">{formatCurrency(venda.valor_total)}</TableCell>
-                  <TableCell className="text-right text-green-600">{formatCurrency(venda.lucro_total)}</TableCell>
+                  <TableCell className="text-right font-medium text-blue-500">{formatCurrency(venda.valor_total)}</TableCell>
+                  <TableCell className="text-right text-green-500">{formatCurrency(venda.lucro_total)}</TableCell>
                 </TableRow>
               ))
             ) : (

@@ -165,9 +165,9 @@ const Produtos = () => {
                 produtos.map((produto) => (
                   <TableRow key={produto.id}>
                     <TableCell className="font-medium">{produto.nome}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(produto.custo_unitario)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(produto.valor_venda)}</TableCell>
-                    <TableCell className="text-right text-green-600">{formatCurrency(produto.lucro)}</TableCell>
+                    <TableCell className="text-right text-red-500">{formatCurrency(produto.custo_unitario)}</TableCell>
+                    <TableCell className="text-right text-blue-500">{formatCurrency(produto.valor_venda)}</TableCell>
+                    <TableCell className="text-right text-green-500">{formatCurrency(produto.lucro)}</TableCell>
                     <TableCell className="text-right">{produto.margem_lucro.toFixed(2)}%</TableCell>
                     <TableCell>
                       <DropdownMenu>
