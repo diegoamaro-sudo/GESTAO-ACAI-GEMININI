@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { showError, showSuccess } from '@/utils/toast'; // Importar showSuccess e showError
 
 const MetricCard = ({ title, value, subtext, icon: Icon, gradient }: { title: string, value: string, subtext: string, icon: React.ElementType, gradient: string }) => (
   <div className={`p-0.5 rounded-lg ${gradient}`}>
@@ -169,6 +170,11 @@ const Index = () => {
   const profitMonthMargin = stats.salesMonth > 0 ? ((stats.profitMonth / stats.salesMonth) * 100).toFixed(1) : '0.0';
 
   const handleExportPdf = () => {
+    if (!data) {
+      showError('Dados do dashboard ainda não carregados. Por favor, aguarde e tente novamente.');
+      return;
+    }
+
     const doc = new jsPDF();
     const acaiPurple = [76, 29, 149]; // Cor roxa do açaí
     const lightPurple = [240, 235, 245]; // Um lilás bem claro
@@ -193,14 +199,14 @@ const Index = () => {
     yOffset += 7;
     doc.setTextColor(0); // Black for content
     doc.setFontSize(10);
-    doc.text(`Vendas do Dia: ${formatCurrency(stats.salesDay)} (${stats.salesDayCount} vendas)`, 14, yOffset);
-    doc.text(`Lucro do Dia: ${formatCurrency(stats.profitDay)} (${profitDayMargin}% de margem)`, 100, yOffset);
+    doc.text(`Vendas do Dia: ${formatCurrency(data.stats.salesDay)} (${data.stats.salesDayCount} vendas)`, 14, yOffset);
+    doc.text(`Lucro do Dia: ${formatCurrency(data.stats.profitDay)} (${profitDayMargin}% de margem)`, 100, yOffset);
     yOffset += 6;
-    doc.text(`Vendas do Mês: ${formatCurrency(stats.salesMonth)} (${stats.salesMonthCount} vendas)`, 14, yOffset);
-    doc.text(`Lucro do Mês: ${formatCurrency(stats.profitMonth)} (${profitMonthMargin}% de margem)`, 100, yOffset);
+    doc.text(`Vendas do Mês: ${formatCurrency(data.stats.salesMonth)} (${data.stats.salesMonthCount} vendas)`, 14, yOffset);
+    doc.text(`Lucro do Mês: ${formatCurrency(data.stats.profitMonth)} (${profitMonthMargin}% de margem)`, 100, yOffset);
     yOffset += 6;
-    doc.text(`Despesas Pagas (Mês): ${formatCurrency(stats.totalDespesasMes)}`, 14, yOffset);
-    doc.text(`Margem de Lucro Geral (Mês): ${formatPercentage(stats.overallProfitMargin)}`, 100, yOffset);
+    doc.text(`Despesas Pagas (Mês): ${formatCurrency(data.stats.totalDespesasMes)}`, 14, yOffset);
+    doc.text(`Margem de Lucro Geral (Mês): ${formatPercentage(data.stats.overallProfitMargin)}`, 100, yOffset);
     yOffset += 15;
 
     // Despesas por Tipo
@@ -211,7 +217,7 @@ const Index = () => {
     (doc as any).autoTable({
       startY: yOffset,
       head: [['Tipo de Despesa', 'Valor']],
-      body: data?.topExpensesData.map(exp => [exp.name, formatCurrency(exp.value)]),
+      body: data.topExpensesData.map(exp => [exp.name, formatCurrency(exp.value)]),
       theme: 'grid',
       headStyles: { fillColor: acaiPurple, textColor: [255, 255, 255], fontStyle: 'bold' },
       alternateRowStyles: { fillColor: lightPurple },
@@ -249,7 +255,7 @@ const Index = () => {
     (doc as any).autoTable({
       startY: yOffset,
       head: [['Produto', 'Quantidade Vendida']],
-      body: data?.topProductsData.map(prod => [prod.name, prod.quantity.toString()]),
+      body: data.topProductsData.map(prod => [prod.name, prod.quantity.toString()]),
       theme: 'grid',
       headStyles: { fillColor: acaiPurple, textColor: [255, 255, 255], fontStyle: 'bold' },
       alternateRowStyles: { fillColor: lightPurple },
@@ -285,7 +291,7 @@ const Index = () => {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex justify-end">
-        <Button onClick={handleExportPdf} className="bg-gradient-to-r from-purple-600 to-pink-500 text-white font-semibold transition-transform hover:scale-105">
+        <Button onClick={handleExportPdf} disabled={isLoading} className="bg-gradient-to-r from-purple-600 to-pink-500 text-white font-semibold transition-transform hover:scale-105">
           <FileDown className="mr-2 h-4 w-4" /> Exportar Relatório PDF
         </Button>
       </div>
