@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { PanelLeft, Package, Home, ShoppingCart, DollarSign, Settings, ClipboardList } from 'lucide-react';
+import { PanelLeft, Package, Home, ShoppingCart, DollarSign, Settings } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { ThemeToggle } from './ThemeToggle';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +10,6 @@ const navItems = [
   { href: '/', icon: Home, label: 'Dashboard' },
   { href: '/vendas', icon: ShoppingCart, label: 'Vendas' },
   { href: '/produtos', icon: Package, label: 'Produtos' },
-  { href: '/composicao', icon: ClipboardList, label: 'Ficha Técnica' },
   { href: '/despesas', icon: DollarSign, label: 'Despesas' },
   { href: '/configuracoes', icon: Settings, label: 'Configurações' },
 ];
