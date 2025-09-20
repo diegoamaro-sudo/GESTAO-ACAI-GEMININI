@@ -108,16 +108,16 @@ const Index = () => {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between space-y-2">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground">Acompanhe suas vendas e performance em tempo real</p>
+            <h1 className="text-3xl font-bold tracking-tight animate-fade-in-up">Dashboard</h1>
+            <p className="text-muted-foreground animate-fade-in-up" style={{ animationDelay: '50ms' }}>Acompanhe suas vendas e performance em tempo real</p>
           </div>
           <div className="flex items-center space-x-2">
-            <Button onClick={() => setIsVendaDialogOpen(true)}>Nova Venda</Button>
-            <Button variant="outline" onClick={() => setIsDespesaDialogOpen(true)}>Nova Despesa</Button>
+            <Button onClick={() => setIsVendaDialogOpen(true)} className="transition-transform duration-200 hover:scale-105 active:scale-95">Nova Venda</Button>
+            <Button variant="outline" onClick={() => setIsDespesaDialogOpen(true)} className="transition-transform duration-200 hover:scale-105 active:scale-95">Nova Despesa</Button>
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
+          <Card className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Vendas do Mês</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -131,7 +131,7 @@ const Index = () => {
               }
             </CardContent>
           </Card>
-          <Card>
+          <Card className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Despesas do Mês</CardTitle>
               <MinusCircle className="h-4 w-4 text-muted-foreground" />
@@ -145,7 +145,7 @@ const Index = () => {
               }
             </CardContent>
           </Card>
-           <Card>
+           <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Lucro do Mês</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -170,8 +170,12 @@ const Index = () => {
             </>
           ) : (
             <>
-              <SalesChart data={chartData} />
-              <ChannelChart data={channelData} />
+              <div className="col-span-1 lg:col-span-2 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+                <SalesChart data={chartData} />
+              </div>
+              <div className="animate-fade-in-up" style={{ animationDelay: '500ms' }}>
+                 <ChannelChart data={channelData} />
+              </div>
             </>
           )}
         </div>

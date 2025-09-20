@@ -45,6 +45,8 @@ const ChannelChart = ({ data }: ChannelChartProps) => {
               fill="#8884d8"
               dataKey="value"
               nameKey="name"
+              isAnimationActive={true}
+              animationDuration={800}
             >
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
