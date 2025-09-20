@@ -177,7 +177,7 @@ const Configuracoes = () => {
           <Card>
             <CardHeader><CardTitle>Logo da Loja</CardTitle><CardDescription>Envie a imagem da sua marca.</CardDescription></CardHeader>
             <CardContent className="flex flex-col items-center gap-4">
-              <div className="w-32 h-32 rounded-lg border bg-muted flex items-center justify-center">
+              <div className="w-40 h-40 rounded-lg border bg-muted flex items-center justify-center">
                 {logoPreview ? <img src={logoPreview} alt="Prévia da logo" className="h-full w-full object-contain rounded-lg" /> : <ImageOff className="h-12 w-12 text-muted-foreground" />}
               </div>
               <Input type="file" accept="image/png, image/jpeg" onChange={handleFileChange} className="text-sm" />

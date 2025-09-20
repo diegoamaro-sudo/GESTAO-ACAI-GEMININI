@@ -31,7 +31,7 @@ const Sidebar = () => {
       <div className="flex h-16 items-center border-b border-white/10 px-6">
         <Link to="/" className="flex items-center gap-2 font-semibold">
           {config?.logo_url ? (
-            <img src={config.logo_url} alt="Logo da Loja" className="h-8 w-auto object-contain" />
+            <img src={config.logo_url} alt="Logo da Loja" className="h-10 w-auto object-contain" />
           ) : (
             <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
               <Package className="h-5 w-5 text-primary-foreground" />
