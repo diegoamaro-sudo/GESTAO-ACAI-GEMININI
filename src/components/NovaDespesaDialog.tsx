@@ -16,6 +16,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription, // Adicionado aqui
   FormField,
   FormItem,
   FormLabel,
