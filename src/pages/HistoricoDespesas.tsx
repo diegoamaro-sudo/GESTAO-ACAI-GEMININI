@@ -112,12 +112,12 @@ const HistoricoDespesas = () => {
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-center gap-4 mb-4">
-          <Select value={selectedMonth === null ? "" : selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(value === "" ? null : Number(value))}>
+          <Select value={selectedMonth === null ? "all" : selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(value === "all" ? null : Number(value))}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filtrar por Mês" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os Meses</SelectItem>
+              <SelectItem value="all">Todos os Meses</SelectItem>
               {monthNames.map((name, index) => (
                 <SelectItem key={index + 1} value={String(index + 1)}>
                   {name}
@@ -125,12 +125,12 @@ const HistoricoDespesas = () => {
               ))}
             </SelectContent>
           </Select>
-          <Select value={selectedYear === null ? "" : selectedYear.toString()} onValueChange={(value) => setSelectedYear(value === "" ? null : Number(value))}>
+          <Select value={selectedYear === null ? "all" : selectedYear.toString()} onValueChange={(value) => setSelectedYear(value === "all" ? null : Number(value))}>
             <SelectTrigger className="w-[120px]">
               <SelectValue placeholder="Filtrar por Ano" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os Anos</SelectItem>
+              <SelectItem value="all">Todos os Anos</SelectItem>
               {years.map((year) => (
                 <SelectItem key={year} value={String(year)}>
                   {year}
@@ -138,14 +138,14 @@ const HistoricoDespesas = () => {
               ))}
             </SelectContent>
           </Select>
-          <Select value={selectedTipoDespesa === null ? "" : selectedTipoDespesa} onValueChange={(value) => setSelectedTipoDespesa(value === "" ? null : value)}>
+          <Select value={selectedTipoDespesa === null ? "all" : selectedTipoDespesa} onValueChange={(value) => setSelectedTipoDespesa(value === "all" ? null : value)}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Filtrar por Tipo" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os Tipos</SelectItem>
+              <SelectItem value="all">Todos os Tipos</SelectItem>
               {isLoadingTipos ? (
-                <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                <SelectItem value="loading-types" disabled>Carregando...</SelectItem>
               ) : tiposDespesa && tiposDespesa.length > 0 ? (
                 tiposDespesa.map((tipo) => (
                   <SelectItem key={tipo.id} value={tipo.id}>
@@ -153,7 +153,7 @@ const HistoricoDespesas = () => {
                   </SelectItem>
                 ))
               ) : (
-                <SelectItem value="no-types" disabled>Nenhum tipo encontrado</SelectItem>
+                <SelectItem value="no-types-found" disabled>Nenhum tipo encontrado</SelectItem>
               )}
             </SelectContent>
           </Select>
