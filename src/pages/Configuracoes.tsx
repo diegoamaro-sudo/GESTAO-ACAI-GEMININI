@@ -180,7 +180,7 @@ const Configuracoes = () => {
               <div className="w-32 h-32 rounded-lg border bg-muted flex items-center justify-center">
                 {logoPreview ? <img src={logoPreview} alt="Prévia da logo" className="h-full w-full object-contain rounded-lg" /> : <ImageOff className="h-12 w-12 text-muted-foreground" />}
               </div>
-              <FormControl><Input type="file" accept="image/png, image/jpeg" onChange={handleFileChange} className="text-sm" /></FormControl>
+              <Input type="file" accept="image/png, image/jpeg" onChange={handleFileChange} className="text-sm" />
             </CardContent>
             <CardFooter className="border-t px-6 py-4"><Button onClick={onLogoSubmit} disabled={!logoFile || isSubmittingLogo} className="w-full">{isSubmittingLogo ? 'Enviando...' : 'Salvar Logo'}</Button></CardFooter>
           </Card>
