@@ -22,6 +22,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showSuccess, showError } from '@/utils/toast';
 
 const formSchema = z.object({
@@ -37,6 +38,12 @@ type Produto = {
   valor_venda: number;
 };
 
+type ComposicaoProduto = {
+  id: string;
+  nome: string;
+  custo_total_calculado: number;
+};
+
 type ProdutoDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -47,6 +54,7 @@ type ProdutoDialogProps = {
 export const ProdutoDialog = ({ open, onOpenChange, onSuccess, produto }: ProdutoDialogProps) => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [composicoes, setComposicoes] = useState<ComposicaoProduto[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -58,21 +66,36 @@ export const ProdutoDialog = ({ open, onOpenChange, onSuccess, produto }: Produt
   });
 
   useEffect(() => {
-    if (produto) {
-      form.reset(produto);
-    } else {
-      form.reset({
-        nome: '',
-        custo_unitario: 0,
-        valor_venda: 0,
-      });
+    const fetchComposicoes = async () => {
+      const { data } = await supabase.from('produtos_fornecedores').select('id, nome, custo_total_calculado');
+      setComposicoes(data || []);
+    };
+
+    if (open) {
+      fetchComposicoes();
+      if (produto) {
+        form.reset(produto);
+      } else {
+        form.reset({
+          nome: '',
+          custo_unitario: 0,
+          valor_venda: 0,
+        });
+      }
     }
-  }, [produto, form]);
+  }, [produto, open, form]);
 
   const custo = form.watch('custo_unitario');
   const valorVenda = form.watch('valor_venda');
   const lucro = valorVenda - custo;
   const margemLucro = valorVenda > 0 ? (lucro / valorVenda) * 100 : 0;
+
+  const handleComposicaoChange = (composicaoId: string) => {
+    const selected = composicoes.find(c => c.id === composicaoId);
+    if (selected) {
+      form.setValue('custo_unitario', selected.custo_total_calculado, { shouldValidate: true });
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user) {
@@ -93,14 +116,9 @@ export const ProdutoDialog = ({ open, onOpenChange, onSuccess, produto }: Produt
 
     let error;
     if (produto) {
-      // Update
-      const { error: updateError } = await supabase
-        .from('produtos')
-        .update(produtoData)
-        .eq('id', produto.id);
+      const { error: updateError } = await supabase.from('produtos').update(produtoData).eq('id', produto.id);
       error = updateError;
     } else {
-      // Insert
       const { error: insertError } = await supabase.from('produtos').insert(produtoData);
       error = insertError;
     }
@@ -122,7 +140,7 @@ export const ProdutoDialog = ({ open, onOpenChange, onSuccess, produto }: Produt
         <DialogHeader>
           <DialogTitle>{produto ? 'Editar Produto' : 'Adicionar Novo Produto'}</DialogTitle>
           <DialogDescription>
-            Preencha as informações do produto abaixo. O lucro e a margem serão calculados automaticamente.
+            Preencha as informações do produto. O lucro e a margem serão calculados automaticamente.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -140,6 +158,19 @@ export const ProdutoDialog = ({ open, onOpenChange, onSuccess, produto }: Produt
                 </FormItem>
               )}
             />
+            <FormItem>
+              <FormLabel>Usar Custo da Ficha Técnica (Opcional)</FormLabel>
+              <Select onValueChange={handleComposicaoChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma ficha técnica para preencher o custo" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {composicoes.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </FormItem>
             <FormField
               control={form.control}
               name="custo_unitario"

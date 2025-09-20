@@ -1,13 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Home, ShoppingCart, Package, DollarSign, Settings, Building } from 'lucide-react';
+import { Home, ShoppingCart, Package, DollarSign, Settings, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/', icon: Home, label: 'Dashboard' },
   { href: '/vendas', icon: ShoppingCart, label: 'Vendas' },
   { href: '/produtos', icon: Package, label: 'Produtos' },
-  { href: '/fornecedores', icon: Building, label: 'Fornecedores' },
+  { href: '/composicao', icon: ClipboardList, label: 'Ficha Técnica' },
   { href: '/despesas', icon: DollarSign, label: 'Despesas' },
   { href: '/configuracoes', icon: Settings, label: 'Configurações' },
 ];
