@@ -109,27 +109,64 @@ const FecharCaixa = () => {
 
   const handleExportPdf = () => {
     const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text('Relatório de Faturamento Mensal', 14, 22);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text(`Ano Corrente: ${new Date().getFullYear()}`, 14, 30);
-    doc.text(`Faturamento Anual Total: ${formatCurrency(faturamentoAnual)}`, 14, 36);
+    const acaiPurple = [76, 29, 149]; // Cor roxa do açaí
 
+    // Cabeçalho
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(acaiPurple[0], acaiPurple[1], acaiPurple[2]);
+    doc.text('Relatório Açaí do Chaves', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100);
+    doc.text('Faturamento Mensal', 105, 28, { align: 'center' });
+
+    // Informações de Resumo
+    doc.setFontSize(11);
+    const currentYear = new Date().getFullYear();
+    doc.text(`Ano Corrente: ${currentYear}`, 14, 45);
+    doc.text(`Faturamento Anual Total: ${formatCurrency(faturamentoAnual)}`, 14, 51);
+
+    // Tabela
     (doc as any).autoTable({
-      startY: 50,
+      startY: 60,
       head: [['Mês/Ano', 'Faturamento Bruto', 'Transferência para PF']],
       body: fechamentos.map(f => [
         `${f.mes}/${f.ano}`,
         formatCurrency(f.faturamento),
         formatCurrency(f.transferencia_pf)
       ]),
-      theme: 'striped',
-      headStyles: { fillColor: [34, 34, 34] },
+      theme: 'grid',
+      headStyles: { 
+        fillColor: acaiPurple,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+      },
+      alternateRowStyles: {
+        fillColor: [240, 235, 245] // Um lilás bem claro
+      },
+      didDrawPage: function (data: any) {
+        // Rodapé
+        const pageCount = doc.internal.getNumberOfPages();
+        doc.setFontSize(10);
+        doc.setTextColor(150);
+        doc.text(
+          `Página ${data.pageNumber} de ${pageCount}`,
+          data.settings.margin.left,
+          doc.internal.pageSize.height - 10
+        );
+        doc.text(
+          `Gerado em: ${new Date().toLocaleDateString('pt-BR')}`,
+          doc.internal.pageSize.width - data.settings.margin.right,
+          doc.internal.pageSize.height - 10,
+          { align: 'right' }
+        );
+      },
     });
 
-    doc.save('relatorio-faturamento.pdf');
-    showSuccess('PDF gerado com sucesso!');
+    doc.save('relatorio-acai-do-chaves.pdf');
+    showSuccess('PDF personalizado gerado com sucesso!');
   };
 
   return (
