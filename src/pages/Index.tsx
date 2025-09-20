@@ -60,7 +60,7 @@ const fetchDashboardData = async () => {
   // Fetch TODAS as despesas pagas do mês (para o gráfico 'Onde você gasta mais' E para a métrica total de despesas)
   const { data: allPaidExpensesMonth, error: allPaidExpensesError } = await supabase
     .from('despesas')
-    .select('valor, tipos_despesa(nome, emoji)')
+    .select('valor, tipos_despesa(nome, emoji), venda_id, vendas(canal_venda_id, canais_venda(nome))') // Adicionado venda_id e join aninhado
     .eq('status', 'paga')
     .gte('data', startOfMonth)
     .lte('data', endOfMonth);
@@ -123,7 +123,15 @@ const fetchDashboardData = async () => {
 
   // Top Expenses Chart Data (usa allPaidExpensesMonth)
   const expensesByType = allPaidExpensesMonth?.reduce((acc, despesa) => {
-    const typeName = despesa.tipos_despesa?.nome || 'Outros';
+    let typeName = despesa.tipos_despesa?.nome || 'Outros';
+
+    // Se for uma taxa de canal de venda e tiver um canal associado, detalha pelo nome do canal
+    if (typeName === 'Taxa de Canal de Venda' && despesa.venda_id && despesa.vendas?.canais_venda?.nome) {
+      typeName = `Taxa: ${despesa.vendas.canais_venda.nome}`;
+    }
+    // Para 'Custo de Produto Vendido', manter como um tipo genérico por enquanto,
+    // a menos que seja solicitado detalhar por produto específico.
+
     acc[typeName] = (acc[typeName] || 0) + despesa.valor;
     return acc;
   }, {} as Record<string, number>);
