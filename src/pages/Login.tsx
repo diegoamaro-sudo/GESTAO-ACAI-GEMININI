@@ -3,9 +3,10 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { Package } from 'lucide-react';
 
 const Login = () => {
-  const { session } = useAuth();
+  const { session, config } = useAuth();
 
   if (session) {
     return <Navigate to="/" replace />;
@@ -14,7 +15,16 @@ const Login = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-background">
       <div className="w-full max-w-md p-8 space-y-8 bg-card rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold text-center text-primary">AÇAÍ DO CHAVES</h2>
+        <div className="flex flex-col items-center justify-center gap-4">
+          {config?.logo_url ? (
+            <img src={config.logo_url} alt="Logo da Loja" className="h-24 w-auto object-contain" />
+          ) : (
+            <div className="h-16 w-16 bg-primary rounded-lg flex items-center justify-center">
+              <Package className="h-8 w-8 text-primary-foreground" />
+            </div>
+          )}
+          <h2 className="text-2xl font-bold text-center text-primary">AÇAÍ DO CHAVES</h2>
+        </div>
         <Auth
           supabaseClient={supabase}
           appearance={{ theme: ThemeSupa }}
