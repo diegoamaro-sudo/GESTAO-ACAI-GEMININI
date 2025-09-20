@@ -24,30 +24,30 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
-    --success: 150 85% 55%;
+    --success: 142 76% 36%;
   }
 
   .dark {
-    --background: 240 10% 2%;
+    --background: 224 71% 4%;
     --foreground: 210 40% 98%;
-    --card: 240 5% 8%;
+    --card: 224 71% 9%;
     --card-foreground: 210 40% 98%;
-    --popover: 240 10% 2%;
+    --popover: 224 71% 4%;
     --popover-foreground: 210 40% 98%;
-    --primary: 262.1 83.3% 57.8%;
+    --primary: 259 94% 61%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 215 28% 17%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --muted: 215 28% 17%;
+    --muted-foreground: 218 11% 65%;
+    --accent: 215 28% 17%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 340 95% 65%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 262.1 83.3% 57.8% / 0.2;
-    --input: 262.1 83.3% 57.8% / 0.1;
-    --ring: 262.1 83.3% 57.8%;
-    --success: 170 95% 55%;
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 259 94% 61%;
+    --success: 142 76% 36%;
   }
 }
 
@@ -58,11 +58,5 @@
 
   body {
     @apply bg-background text-foreground;
-  }
-}
-
-@layer components {
-  .glowing-text {
-    text-shadow: 0 0 6px hsl(var(--primary)/0.8), 0 0 12px hsl(var(--primary)/0.5);
   }
 }

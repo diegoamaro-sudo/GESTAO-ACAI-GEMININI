@@ -10,8 +10,6 @@ const Login = () => {
 
   useEffect(() => {
     if (session) {
-      // The user is already logged in, redirect them to the dashboard
-      // This is handled by the route definition, but as a fallback:
       window.location.pathname = '/';
     }
   }, [session]);
@@ -22,9 +20,9 @@ const Login = () => {
   }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-background">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-card rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold text-center text-primary glowing-text">Açaí do Chaves - Admin</h2>
+    <div className="flex justify-center items-center min-h-screen bg-background">
+      <div className="w-full max-w-md p-8 space-y-8 bg-card rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold text-center text-primary">AÇAÍ DO CHAVES</h2>
         <Auth
           supabaseClient={supabase}
           appearance={{ theme: ThemeSupa }}

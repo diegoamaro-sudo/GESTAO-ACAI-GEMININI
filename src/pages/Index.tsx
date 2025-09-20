@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, CreditCard, MinusCircle, TrendingUp } from "lucide-react";
+import { DollarSign, MinusCircle, TrendingUp } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { NovaDespesaDialog } from "@/components/NovaDespesaDialog";
 import { NovaVendaDialog } from "@/components/NovaVendaDialog";
@@ -10,12 +10,10 @@ import ChannelChart from "@/components/ChannelChart";
 
 const Index = () => {
   const [stats, setStats] = useState({
-    salesToday: 0,
-    profitToday: 0,
     salesMonth: 0,
     profitMonth: 0,
-    expensesToday: 0,
     expensesMonth: 0,
+    salesMonthCount: 0,
   });
   const [chartData, setChartData] = useState([]);
   const [channelData, setChannelData] = useState([]);
@@ -35,9 +33,9 @@ const Index = () => {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    const { data: vendasMes, error: vendasError } = await supabase
+    const { data: vendasMes, error: vendasError, count: salesMonthCount } = await supabase
       .from('vendas')
-      .select('valor_total, lucro_total, created_at, canais_venda(nome)')
+      .select('valor_total, lucro_total, created_at, canais_venda(nome)', { count: 'exact' })
       .gte('created_at', startOfMonth.toISOString());
 
     const { data: despesasMes, error: despesasError } = await supabase
@@ -51,14 +49,10 @@ const Index = () => {
       return;
     }
 
-    const todayStr = today.toISOString().split('T')[0];
-    const salesToday = vendasMes?.filter(v => v.created_at.startsWith(todayStr)).reduce((acc, v) => acc + (v.valor_total || 0), 0) || 0;
-    const profitToday = vendasMes?.filter(v => v.created_at.startsWith(todayStr)).reduce((acc, v) => acc + (v.lucro_total || 0), 0) || 0;
     const salesMonth = vendasMes?.reduce((acc, v) => acc + (v.valor_total || 0), 0) || 0;
     const profitMonth = vendasMes?.reduce((acc, v) => acc + (v.lucro_total || 0), 0) || 0;
-    const expensesToday = despesasMes?.filter(d => d.data === todayStr).reduce((acc, d) => acc + (d.valor || 0), 0) || 0;
     const expensesMonth = despesasMes?.reduce((acc, d) => acc + (d.valor || 0), 0) || 0;
-    setStats({ salesToday, profitToday, salesMonth, profitMonth, expensesToday, expensesMonth });
+    setStats({ salesMonth, profitMonth, expensesMonth, salesMonthCount: salesMonthCount || 0 });
 
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
@@ -113,7 +107,10 @@ const Index = () => {
       />
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">Acompanhe suas vendas e performance em tempo real</p>
+          </div>
           <div className="flex items-center space-x-2">
             <Button onClick={() => setIsVendaDialogOpen(true)}>Nova Venda</Button>
             <Button variant="outline" onClick={() => setIsDespesaDialogOpen(true)}>Nova Despesa</Button>
@@ -122,56 +119,46 @@ const Index = () => {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Vendas Hoje</CardTitle>
-              <TrendingUp className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-medium">Vendas do Mês</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-primary">{formatCurrency(stats.salesToday)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : 
+                <>
+                  <div className="text-2xl font-bold">{formatCurrency(stats.salesMonth)}</div>
+                  <p className="text-xs text-muted-foreground">{stats.salesMonthCount} vendas realizadas</p>
+                </>
+              }
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Lucro Hoje</CardTitle>
-              <DollarSign className="h-4 w-4 text-success" />
+              <CardTitle className="text-sm font-medium">Despesas do Mês</CardTitle>
+              <MinusCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-success">{formatCurrency(stats.profitToday)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : 
+                <>
+                  <div className="text-2xl font-bold">{formatCurrency(stats.expensesMonth)}</div>
+                  <p className="text-xs text-muted-foreground">Custos e taxas das vendas</p>
+                </>
+              }
             </CardContent>
           </Card>
            <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Despesas Hoje</CardTitle>
-              <MinusCircle className="h-4 w-4 text-destructive" />
+              <CardTitle className="text-sm font-medium">Lucro do Mês</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-destructive">{formatCurrency(stats.expensesToday)}</div>}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Vendas no Mês</CardTitle>
-              <TrendingUp className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-primary">{formatCurrency(stats.salesMonth)}</div>}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Lucro no Mês</CardTitle>
-              <DollarSign className="h-4 w-4 text-success" />
-            </CardHeader>
-            <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-success">{formatCurrency(stats.profitMonth)}</div>}
-            </CardContent>
-          </Card>
-           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Despesas no Mês</CardTitle>
-              <MinusCircle className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-destructive">{formatCurrency(stats.expensesMonth)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : 
+                <>
+                  <div className="text-2xl font-bold text-success">{formatCurrency(stats.profitMonth)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Margem: {stats.salesMonth > 0 ? ((stats.profitMonth / stats.salesMonth) * 100).toFixed(1) : '0.0'}%
+                  </p>
+                </>
+              }
             </CardContent>
           </Card>
         </div>

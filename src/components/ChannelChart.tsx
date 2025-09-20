@@ -10,7 +10,7 @@ type ChannelChartProps = {
   data: ChannelData[];
 };
 
-const COLORS = ['#a855f7', '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#ef4444'];
+const COLORS = ['#8B5CF6', '#22D3EE', '#F471B5', '#4ADE80', '#F97316', '#EF4444'];
 
 const ChannelChart = ({ data }: ChannelChartProps) => {
   return (
