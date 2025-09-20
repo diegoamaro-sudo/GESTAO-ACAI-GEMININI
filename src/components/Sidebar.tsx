@@ -12,7 +12,7 @@ const navItems = [
   { href: '/ficha-tecnica', icon: ClipboardList, label: 'Ficha Técnica' },
   { href: '/fornecedores', icon: Building2, label: 'Fornecedores' },
   { href: '/despesas', icon: DollarSign, label: 'Despesas' },
-  { href: '/historico-despesas', icon: History, label: 'Histórico Despesas' }, {/* New item */}
+  { href: '/historico-despesas', icon: History, label: 'Histórico Despesas' },
   { href: '/fechar-caixa', icon: Archive, label: 'Fechar Caixa' },
   { href: '/configuracoes', icon: Settings, label: 'Configurações' },
 ];
