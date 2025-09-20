@@ -29,12 +29,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { showSuccess, showError } from '@/utils/toast';
 
 const formSchema = z.object({
   descricao: z.string().min(2, { message: 'A descrição é obrigatória.' }),
   valor: z.coerce.number().positive({ message: 'O valor deve ser positivo.' }),
   categoria: z.enum(['variavel', 'fixa'], { required_error: 'Selecione uma categoria.' }),
+  recorrente: z.boolean().default(false).optional(),
+  data_vencimento_dia: z.coerce.number().min(1).max(31).optional().nullable(),
 });
 
 type NovaDespesaDialogProps = {
@@ -52,8 +55,12 @@ export const NovaDespesaDialog = ({ open, onOpenChange, onDespesaAdicionada }: N
     defaultValues: {
       descricao: '',
       valor: 0,
+      recorrente: false,
+      data_vencimento_dia: undefined,
     },
   });
+
+  const isRecurring = form.watch('recorrente');
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user) {
@@ -69,7 +76,9 @@ export const NovaDespesaDialog = ({ open, onOpenChange, onDespesaAdicionada }: N
         descricao: values.descricao,
         valor: values.valor,
         categoria: values.categoria,
-        data: new Date().toISOString().split('T')[0], // Today's date
+        data: new Date().toISOString().split('T')[0], // Today's date for initial entry
+        recorrente: values.recorrente,
+        data_vencimento_dia: values.recorrente ? values.data_vencimento_dia : null,
       },
     ]);
 
@@ -143,6 +152,41 @@ export const NovaDespesaDialog = ({ open, onOpenChange, onDespesaAdicionada }: N
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="recorrente"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Despesa Recorrente</FormLabel>
+                    <FormDescription>
+                      Marque se esta despesa se repete mensalmente.
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+            {isRecurring && (
+              <FormField
+                control={form.control}
+                name="data_vencimento_dia"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dia de Vencimento (do mês)</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="1" max="31" placeholder="Ex: 10" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Salvando...' : 'Salvar Despesa'}

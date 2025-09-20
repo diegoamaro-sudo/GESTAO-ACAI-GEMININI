@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, TrendingUp, ShoppingBag, Wallet } from "lucide-react";
+import { DollarSign, TrendingUp, ShoppingBag, Wallet, ReceiptText } from "lucide-react";
 import PerformanceChart from "@/components/PerformanceChart";
 import ChannelChart from "@/components/ChannelChart";
 import { useQuery } from "@tanstack/react-query";
@@ -35,6 +35,17 @@ const fetchDashboardData = async () => {
 
   if (vendasError) throw new Error(vendasError.message);
 
+  const { data: despesasMes, error: despesasError } = await supabase
+    .from('despesas')
+    .select('valor')
+    .eq('status', 'paga')
+    .gte('data', startOfMonth)
+    .lte('data', new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString()); // End of current month
+
+  if (despesasError) throw new Error(despesasError.message);
+
+  const totalDespesasMes = despesasMes?.reduce((acc, d) => acc + d.valor, 0) || 0;
+
   const vendasHoje = vendas?.filter(v => v.created_at >= startOfDay) || [];
   const salesDay = vendasHoje.reduce((acc, v) => acc + v.valor_total, 0);
   const profitDay = vendasHoje.reduce((acc, v) => acc + v.lucro_total, 0);
@@ -49,6 +60,7 @@ const fetchDashboardData = async () => {
     salesMonth,
     profitMonth,
     salesMonthCount: salesMonthCount || 0,
+    totalDespesasMes,
   };
 
   const dailyData = Array.from({ length: 7 }, (_, i) => {
@@ -91,6 +103,7 @@ const Index = () => {
     salesMonth: 0,
     profitMonth: 0,
     salesMonthCount: 0,
+    totalDespesasMes: 0,
   };
 
   const profitDayMargin = stats.salesDay > 0 ? ((stats.profitDay / stats.salesDay) * 100).toFixed(1) : '0.0';
@@ -103,6 +116,7 @@ const Index = () => {
         <MetricCard title="Lucro do Dia" value={formatCurrency(stats.profitDay)} subtext={`${profitDayMargin}% de margem`} icon={DollarSign} gradient="bg-gradient-to-r from-green-400 to-teal-400" />
         <MetricCard title="Vendas do Mês" value={formatCurrency(stats.salesMonth)} subtext={`${stats.salesMonthCount} vendas`} icon={TrendingUp} gradient="bg-gradient-to-r from-primary to-pink-500" />
         <MetricCard title="Lucro do Mês" value={formatCurrency(stats.profitMonth)} subtext={`${profitMonthMargin}% de margem`} icon={Wallet} gradient="bg-gradient-to-r from-green-400 to-teal-400" />
+        <MetricCard title="Despesas Pagas (Mês)" value={formatCurrency(stats.totalDespesasMes)} subtext="Total de despesas pagas" icon={ReceiptText} gradient="bg-gradient-to-r from-red-500 to-orange-500" />
       </div>
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="lg:col-span-3">
