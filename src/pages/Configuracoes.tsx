@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -38,7 +38,7 @@ const Configuracoes = () => {
   const [isSubmittingConfig, setIsSubmittingConfig] = useState(false);
   // State for Logo
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(config?.logo_url || null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isSubmittingLogo, setIsSubmittingLogo] = useState(false);
   // State for Sales Channels
   const [canais, setCanais] = useState<CanalVenda[]>([]);
@@ -53,22 +53,23 @@ const Configuracoes = () => {
     resolver: zodResolver(configFormSchema),
   });
 
-  // Fetch initial data
+  const fetchCanais = useCallback(async () => {
+    setLoadingCanais(true);
+    const { data, error } = await supabase.from('canais_venda').select('*').order('nome');
+    if (error) showError('Erro ao buscar canais de venda.');
+    else setCanais(data || []);
+    setLoadingCanais(false);
+  }, []);
+
+  useEffect(() => {
+    fetchCanais();
+  }, [fetchCanais]);
+
   useEffect(() => {
     if (config) {
       configForm.reset({ nome_loja: config.nome_loja, limite_mei: config.limite_mei });
       setLogoPreview(config.logo_url || null);
     }
-    
-    const fetchCanais = async () => {
-      setLoadingCanais(true);
-      const { data, error } = await supabase.from('canais_venda').select('*').order('nome');
-      if (error) showError('Erro ao buscar canais de venda.');
-      else setCanais(data || []);
-      setLoadingCanais(false);
-    };
-
-    fetchCanais();
   }, [config, configForm]);
 
   // Handlers for General Config
@@ -143,7 +144,7 @@ const Configuracoes = () => {
 
   return (
     <>
-      <CanalVendaDialog open={isCanalDialogOpen} onOpenChange={setIsCanalDialogOpen} onSuccess={() => { const fetchCanais = async () => { const { data } = await supabase.from('canais_venda').select('*').order('nome'); setCanais(data || []); }; fetchCanais(); }} canal={selectedCanal} />
+      <CanalVendaDialog open={isCanalDialogOpen} onOpenChange={setIsCanalDialogOpen} onSuccess={fetchCanais} canal={selectedCanal} />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Você tem certeza?</AlertDialogTitle><AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente o canal "{canalToDelete?.nome}".</AlertDialogDescription></AlertDialogHeader>
