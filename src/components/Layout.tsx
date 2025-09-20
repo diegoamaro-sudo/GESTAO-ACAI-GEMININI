@@ -3,14 +3,19 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import { NovaVendaDialog } from './NovaVendaDialog';
 import { NovaDespesaDialog } from './NovaDespesaDialog';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Layout = ({ children }: { children: ReactNode }) => {
   const [isVendaDialogOpen, setIsVendaDialogOpen] = useState(false);
   const [isDespesaDialogOpen, setIsDespesaDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  // This is a placeholder. In a real app, you'd have a callback to refresh data.
   const handleSuccess = () => {
-    window.location.reload();
+    // Invalida os caches relevantes para que os dados sejam atualizados automaticamente
+    queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
+    queryClient.invalidateQueries({ queryKey: ['vendas'] });
+    queryClient.invalidateQueries({ queryKey: ['despesas'] });
+    queryClient.invalidateQueries({ queryKey: ['fechamentos'] });
   };
 
   return (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Table,
@@ -19,28 +19,23 @@ type Venda = {
   canais_venda: { nome: string } | null;
 };
 
+const fetchVendas = async () => {
+  const { data, error } = await supabase
+    .from('vendas')
+    .select('id, created_at, valor_total, lucro_total, canais_venda(nome)')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error('Erro ao buscar vendas: ' + error.message);
+  }
+  return data as Venda[] || [];
+};
+
 const Vendas = () => {
-  const [vendas, setVendas] = useState<Venda[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchVendas = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('vendas')
-        .select('id, created_at, valor_total, lucro_total, canais_venda(nome)')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Erro ao buscar vendas:', error);
-      } else {
-        setVendas(data as Venda[] || []);
-      }
-      setLoading(false);
-    };
-
-    fetchVendas();
-  }, []);
+  const { data: vendas, isLoading } = useQuery({
+    queryKey: ['vendas'],
+    queryFn: fetchVendas,
+  });
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -66,13 +61,13 @@ const Vendas = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center">
                   Carregando...
                 </TableCell>
               </TableRow>
-            ) : vendas.length > 0 ? (
+            ) : vendas && vendas.length > 0 ? (
               vendas.map((venda) => (
                 <TableRow key={venda.id}>
                   <TableCell>{formatDate(venda.created_at)}</TableCell>

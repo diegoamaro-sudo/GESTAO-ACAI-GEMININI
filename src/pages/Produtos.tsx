@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Table,
@@ -46,32 +47,33 @@ type Produto = {
   margem_lucro: number;
 };
 
+const fetchProdutos = async () => {
+  const { data, error } = await supabase
+    .from('produtos')
+    .select('*')
+    .order('nome', { ascending: true });
+
+  if (error) {
+    throw new Error('Erro ao buscar produtos: ' + error.message);
+  }
+  return data || [];
+};
+
 const Produtos = () => {
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: produtos, isLoading } = useQuery<Produto[]>({
+    queryKey: ['produtos'],
+    queryFn: fetchProdutos,
+  });
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [produtoToDelete, setProdutoToDelete] = useState<Produto | null>(null);
 
-  const fetchProdutos = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('produtos')
-      .select('*')
-      .order('nome', { ascending: true });
-
-    if (error) {
-      showError('Erro ao buscar produtos: ' + error.message);
-    } else {
-      setProdutos(data || []);
-    }
-    setLoading(false);
+  const handleSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['produtos'] });
   };
-
-  useEffect(() => {
-    fetchProdutos();
-  }, []);
 
   const handleEdit = (produto: Produto) => {
     setSelectedProduto(produto);
@@ -95,7 +97,7 @@ const Produtos = () => {
       showError('Erro ao excluir produto: ' + error.message);
     } else {
       showSuccess('Produto excluído com sucesso!');
-      fetchProdutos();
+      handleSuccess();
     }
     setIsDeleteDialogOpen(false);
     setProdutoToDelete(null);
@@ -110,7 +112,7 @@ const Produtos = () => {
       <ProdutoDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        onSuccess={fetchProdutos}
+        onSuccess={handleSuccess}
         produto={selectedProduto}
       />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -155,13 +157,13 @@ const Produtos = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center">
                     Carregando...
                   </TableCell>
                 </TableRow>
-              ) : produtos.length > 0 ? (
+              ) : produtos && produtos.length > 0 ? (
                 produtos.map((produto) => (
                   <TableRow key={produto.id}>
                     <TableCell className="font-medium">{produto.nome}</TableCell>

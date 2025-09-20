@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { DollarSign, TrendingUp, ShoppingBag, Wallet } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
 import PerformanceChart from "@/components/PerformanceChart";
 import ChannelChart from "@/components/ChannelChart";
+import { useQuery } from "@tanstack/react-query";
 
 const MetricCard = ({ title, value, subtext, icon: Icon, gradient }: { title: string, value: string, subtext: string, icon: React.ElementType, gradient: string }) => (
   <div className={`p-0.5 rounded-lg ${gradient}`}>
@@ -20,86 +20,78 @@ const MetricCard = ({ title, value, subtext, icon: Icon, gradient }: { title: st
   </div>
 );
 
+const fetchDashboardData = async () => {
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  const { data: vendas, error: vendasError, count: salesMonthCount } = await supabase
+    .from('vendas')
+    .select('valor_total, lucro_total, created_at, canais_venda(nome)', { count: 'exact' })
+    .gte('created_at', startOfMonth);
+
+  if (vendasError) throw new Error(vendasError.message);
+
+  const vendasHoje = vendas?.filter(v => v.created_at >= startOfDay) || [];
+  const salesDay = vendasHoje.reduce((acc, v) => acc + v.valor_total, 0);
+  const profitDay = vendasHoje.reduce((acc, v) => acc + v.lucro_total, 0);
+  
+  const salesMonth = vendas?.reduce((acc, v) => acc + v.valor_total, 0) || 0;
+  const profitMonth = vendas?.reduce((acc, v) => acc + v.lucro_total, 0) || 0;
+
+  const stats = {
+    salesDay,
+    profitDay,
+    salesDayCount: vendasHoje.length,
+    salesMonth,
+    profitMonth,
+    salesMonthCount: salesMonthCount || 0,
+  };
+
+  const dailyData = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(today.getDate() - i);
+    return { name: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), vendas: 0, lucro: 0 };
+  }).reverse();
+
+  vendas?.filter(v => new Date(v.created_at) >= sevenDaysAgo).forEach(venda => {
+    const dateStr = new Date(venda.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    const dayData = dailyData.find(d => d.name === dateStr);
+    if (dayData) {
+      dayData.vendas += venda.valor_total || 0;
+      dayData.lucro += venda.lucro_total || 0;
+    }
+  });
+
+  const salesByChannel = vendas?.reduce((acc, venda) => {
+    const channelName = venda.canais_venda?.nome || 'N/A';
+    acc[channelName] = (acc[channelName] || 0) + venda.valor_total;
+    return acc;
+  }, {} as Record<string, number>);
+  const channelData = Object.entries(salesByChannel || {}).map(([name, value]) => ({ name, value }));
+
+  return { stats, chartData: dailyData, channelData };
+};
+
 const Index = () => {
-  const [stats, setStats] = useState({
+  const { data, isLoading } = useQuery({
+    queryKey: ['dashboardData'],
+    queryFn: fetchDashboardData,
+  });
+
+  const formatCurrency = (value: number) => (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const stats = data?.stats || {
     salesDay: 0,
     profitDay: 0,
     salesDayCount: 0,
     salesMonth: 0,
     profitMonth: 0,
     salesMonthCount: 0,
-  });
-  const [chartData, setChartData] = useState([]);
-  const [channelData, setChannelData] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const formatCurrency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-  const fetchStats = useCallback(async () => {
-    setLoading(true);
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
-
-    const { data: vendas, error: vendasError, count: salesMonthCount } = await supabase
-      .from('vendas')
-      .select('valor_total, lucro_total, created_at, canais_venda(nome)', { count: 'exact' })
-      .gte('created_at', startOfMonth);
-
-    if (vendasError) {
-      console.error("Error fetching stats:", vendasError);
-      setLoading(false);
-      return;
-    }
-
-    const vendasHoje = vendas?.filter(v => v.created_at >= startOfDay) || [];
-    const salesDay = vendasHoje.reduce((acc, v) => acc + v.valor_total, 0);
-    const profitDay = vendasHoje.reduce((acc, v) => acc + v.lucro_total, 0);
-    
-    const salesMonth = vendas?.reduce((acc, v) => acc + v.valor_total, 0) || 0;
-    const profitMonth = vendas?.reduce((acc, v) => acc + v.lucro_total, 0) || 0;
-
-    setStats({
-      salesDay,
-      profitDay,
-      salesDayCount: vendasHoje.length,
-      salesMonth,
-      profitMonth,
-      salesMonthCount: salesMonthCount || 0,
-    });
-
-    const dailyData = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date();
-      d.setDate(today.getDate() - i);
-      return { name: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), vendas: 0, lucro: 0 };
-    }).reverse();
-
-    vendas?.filter(v => new Date(v.created_at) >= sevenDaysAgo).forEach(venda => {
-      const dateStr = new Date(venda.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-      const dayData = dailyData.find(d => d.name === dateStr);
-      if (dayData) {
-        dayData.vendas += venda.valor_total || 0;
-        dayData.lucro += venda.lucro_total || 0;
-      }
-    });
-    setChartData(dailyData);
-
-    const salesByChannel = vendas?.reduce((acc, venda) => {
-      const channelName = venda.canais_venda?.nome || 'N/A';
-      acc[channelName] = (acc[channelName] || 0) + venda.valor_total;
-      return acc;
-    }, {} as Record<string, number>);
-    setChannelData(Object.entries(salesByChannel || {}).map(([name, value]) => ({ name, value })));
-
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+  };
 
   const profitDayMargin = stats.salesDay > 0 ? ((stats.profitDay / stats.salesDay) * 100).toFixed(1) : '0.0';
   const profitMonthMargin = stats.salesMonth > 0 ? ((stats.profitMonth / stats.salesMonth) * 100).toFixed(1) : '0.0';
@@ -114,10 +106,10 @@ const Index = () => {
       </div>
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          {loading ? <Card><div className="h-[420px] w-full animate-pulse bg-card rounded-lg"></div></Card> : <PerformanceChart data={chartData} />}
+          {isLoading ? <Card><div className="h-[420px] w-full animate-pulse bg-card rounded-lg"></div></Card> : <PerformanceChart data={data?.chartData || []} />}
         </div>
         <div className="lg:col-span-2">
-          {loading ? <Card><div className="h-[420px] w-full animate-pulse bg-card rounded-lg"></div></Card> : <ChannelChart data={channelData} />}
+          {isLoading ? <Card><div className="h-[420px] w-full animate-pulse bg-card rounded-lg"></div></Card> : <ChannelChart data={data?.channelData || []} />}
         </div>
       </div>
     </div>

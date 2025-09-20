@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Table,
@@ -19,28 +19,23 @@ type Despesa = {
   data: string;
 };
 
+const fetchDespesas = async () => {
+  const { data, error } = await supabase
+    .from('despesas')
+    .select('*')
+    .order('data', { ascending: false });
+
+  if (error) {
+    throw new Error('Erro ao buscar despesas: ' + error.message);
+  }
+  return data || [];
+};
+
 const Despesas = () => {
-  const [despesas, setDespesas] = useState<Despesa[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchDespesas = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('despesas')
-        .select('*')
-        .order('data', { ascending: false });
-
-      if (error) {
-        console.error('Erro ao buscar despesas:', error);
-      } else {
-        setDespesas(data || []);
-      }
-      setLoading(false);
-    };
-
-    fetchDespesas();
-  }, []);
+  const { data: despesas, isLoading } = useQuery<Despesa[]>({
+    queryKey: ['despesas'],
+    queryFn: fetchDespesas,
+  });
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -66,13 +61,13 @@ const Despesas = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center">
                   Carregando...
                 </TableCell>
               </TableRow>
-            ) : despesas.length > 0 ? (
+            ) : despesas && despesas.length > 0 ? (
               despesas.map((despesa) => (
                 <TableRow key={despesa.id}>
                   <TableCell className="font-medium">{despesa.descricao}</TableCell>
