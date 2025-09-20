@@ -112,7 +112,7 @@ const HistoricoDespesas = () => {
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-center gap-4 mb-4">
-          <Select value={selectedMonth?.toString() || ''} onValueChange={(value) => setSelectedMonth(value === '' ? null : Number(value))}>
+          <Select value={selectedMonth === null ? "" : selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(value === "" ? null : Number(value))}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filtrar por Mês" />
             </SelectTrigger>
@@ -125,7 +125,7 @@ const HistoricoDespesas = () => {
               ))}
             </SelectContent>
           </Select>
-          <Select value={selectedYear?.toString() || ''} onValueChange={(value) => setSelectedYear(value === '' ? null : Number(value))}>
+          <Select value={selectedYear === null ? "" : selectedYear.toString()} onValueChange={(value) => setSelectedYear(value === "" ? null : Number(value))}>
             <SelectTrigger className="w-[120px]">
               <SelectValue placeholder="Filtrar por Ano" />
             </SelectTrigger>
@@ -138,7 +138,7 @@ const HistoricoDespesas = () => {
               ))}
             </SelectContent>
           </Select>
-          <Select value={selectedTipoDespesa || ''} onValueChange={(value) => setSelectedTipoDespesa(value === '' ? null : value)}>
+          <Select value={selectedTipoDespesa === null ? "" : selectedTipoDespesa} onValueChange={(value) => setSelectedTipoDespesa(value === "" ? null : value)}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Filtrar por Tipo" />
             </SelectTrigger>
