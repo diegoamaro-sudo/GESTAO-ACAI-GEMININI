@@ -16,7 +16,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 
 const formSchema = z.object({
   nome: z.string().min(2, { message: 'O nome é obrigatório.' }),
-  imagem_url: z.string().url({ message: 'Por favor, insira uma URL válida.' }).optional().or(z.literal('')),
 });
 
 type ComposicaoProduto = {
@@ -40,29 +39,39 @@ export const ComposicaoDialog = ({ open, onOpenChange, onSuccess, composicao }: 
   const [custoItens, setCustoItens] = useState<CustoItem[]>([]);
   const [selectedCustoItem, setSelectedCustoItem] = useState<CustoItem | null>(null);
   const [itemOriginalId, setItemOriginalId] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { nome: '', imagem_url: '' },
+    defaultValues: { nome: '' },
   });
 
   useEffect(() => {
     const fetchCustoItens = async () => {
       if (composicao) {
-        form.reset({ nome: composicao.nome, imagem_url: composicao.imagem_url || '' });
+        form.reset({ nome: composicao.nome });
+        setImagePreview(composicao.imagem_url || null);
         const { data } = await supabase.from('custos_produtos').select('*, fornecedores(nome)').eq('produto_id', composicao.id);
-        const formattedData = data?.map(item => ({
-          ...item,
-          fornecedor_nome: item.fornecedores?.nome || 'N/A'
-        })) || [];
+        const formattedData = data?.map(item => ({ ...item, fornecedor_nome: item.fornecedores?.nome || 'N/A' })) || [];
         setCustoItens(formattedData as CustoItem[]);
       } else {
-        form.reset({ nome: '', imagem_url: '' });
+        form.reset({ nome: '' });
         setCustoItens([]);
+        setImagePreview(null);
       }
+      setSelectedFile(null);
     };
-    if(open) fetchCustoItens();
+    if (open) fetchCustoItens();
   }, [composicao, open, form]);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
 
   const handleSaveCustoItem = (item: CustoItem) => {
     setCustoItens(prev => {
@@ -91,10 +100,23 @@ export const ComposicaoDialog = ({ open, onOpenChange, onSuccess, composicao }: 
     if (!user) return showError('Você precisa estar logado.');
     setIsSubmitting(true);
 
+    let imageUrl = composicao?.imagem_url || '';
+    if (selectedFile) {
+      const filePath = `public/${user.id}-${Date.now()}-${selectedFile.name}`;
+      const { error: uploadError } = await supabase.storage.from('imagens_produtos').upload(filePath, selectedFile);
+      if (uploadError) {
+        showError(`Erro no upload da imagem: ${uploadError.message}`);
+        setIsSubmitting(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from('imagens_produtos').getPublicUrl(filePath);
+      imageUrl = urlData.publicUrl;
+    }
+
     const composicaoData = {
       user_id: user.id,
       nome: values.nome,
-      imagem_url: values.imagem_url,
+      imagem_url: imageUrl,
       custo_total_calculado: custoTotal,
     };
 
@@ -127,12 +149,7 @@ export const ComposicaoDialog = ({ open, onOpenChange, onSuccess, composicao }: 
 
   return (
     <>
-      <CustoItemDialog
-        open={isCustoItemDialogOpen}
-        onOpenChange={setIsCustoItemDialogOpen}
-        onSave={handleSaveCustoItem}
-        item={selectedCustoItem}
-      />
+      <CustoItemDialog open={isCustoItemDialogOpen} onOpenChange={setIsCustoItemDialogOpen} onSave={handleSaveCustoItem} item={selectedCustoItem} />
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
@@ -141,13 +158,15 @@ export const ComposicaoDialog = ({ open, onOpenChange, onSuccess, composicao }: 
           </DialogHeader>
           <Form {...form}>
             <form className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                 <FormField control={form.control} name="nome" render={({ field }) => (
                   <FormItem><FormLabel>Nome do Produto Final</FormLabel><FormControl><Input placeholder="Ex: Açaí 500ml com adicionais" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <FormField control={form.control} name="imagem_url" render={({ field }) => (
-                  <FormItem><FormLabel>URL da Imagem (Opcional)</FormLabel><FormControl><Input placeholder="https://exemplo.com/imagem.png" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
+                <FormItem>
+                  <FormLabel>Imagem do Produto</FormLabel>
+                  <FormControl><Input type="file" accept="image/*" onChange={handleFileChange} /></FormControl>
+                  {imagePreview && <img src={imagePreview} alt="Preview" className="mt-2 h-20 w-20 object-cover rounded-md" />}
+                </FormItem>
               </div>
             </form>
           </Form>

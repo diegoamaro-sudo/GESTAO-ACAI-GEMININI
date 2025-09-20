@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, Package, DollarSign, Settings, ClipboardList } from 'lucide-react';
+import { Home, ShoppingCart, Package, DollarSign, Settings, ClipboardList, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -7,6 +7,7 @@ const navItems = [
   { href: '/vendas', icon: ShoppingCart, label: 'Vendas' },
   { href: '/produtos', icon: Package, label: 'Produtos' },
   { href: '/ficha-tecnica', icon: ClipboardList, label: 'Ficha Técnica' },
+  { href: '/fornecedores', icon: Building2, label: 'Fornecedores' },
   { href: '/despesas', icon: DollarSign, label: 'Despesas' },
   { href: '/configuracoes', icon: Settings, label: 'Configurações' },
 ];
