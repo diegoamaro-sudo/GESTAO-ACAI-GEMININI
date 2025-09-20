@@ -1,14 +1,27 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import Layout from '@/components/Layout';
 
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div>Carregando...</div>; // Ou um componente de spinner
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div>Carregando...</div>
+      </div>
+    );
   }
 
-  return user ? <Outlet /> : <Navigate to="/login" />;
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  return (
+    <Layout>
+      <Outlet />
+    </Layout>
+  );
 };
 
 export default ProtectedRoute;

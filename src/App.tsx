@@ -6,19 +6,26 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { ThemeProvider } from "./components/ThemeProvider";
+import Vendas from "./pages/Vendas";
+import Produtos from "./pages/Produtos";
+import Despesas from "./pages/Despesas";
+import Configuracoes from "./pages/Configuracoes";
 
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const { session } = useAuth();
-
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<Index />} />
+        <Route path="/vendas" element={<Vendas />} />
+        <Route path="/produtos" element={<Produtos />} />
+        <Route path="/despesas" element={<Despesas />} />
+        <Route path="/configuracoes" element={<Configuracoes />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -28,13 +35,15 @@ const AppRoutes = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </BrowserRouter>
+      </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
