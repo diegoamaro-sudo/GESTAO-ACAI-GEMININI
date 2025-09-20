@@ -197,7 +197,7 @@ export const ComposicaoDialog = ({ open, onOpenChange, onSuccess, composicao }: 
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.nome}</TableCell>
                       <TableCell>{item.fornecedor_nome}</TableCell>
-                      <TableCell className="text-right text-red-500">{item.custo_unitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
+                      <TableCell className="text-right text-destructive">{item.custo_unitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => handleEditCustoItem(item)}><Edit className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => handleRemoveCustoItem(item.id!)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -206,7 +206,7 @@ export const ComposicaoDialog = ({ open, onOpenChange, onSuccess, composicao }: 
                   ))}
                 </TableBody>
               </Table>
-              <div className="mt-4 text-right font-bold text-lg text-red-500">
+              <div className="mt-4 text-right font-bold text-lg text-destructive">
                 Custo Total do Produto: {custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
               </div>
             </CardContent>

@@ -252,10 +252,10 @@ export const NovaVendaDialog = ({ open, onOpenChange, onVendaAdicionada }: NovaV
             </Form>
             <div className="mt-4 space-y-2 rounded-lg border p-4">
               <div className="flex justify-between"><span className="text-muted-foreground">Subtotal Produtos:</span> <span>{subtotalProdutos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Taxa do Canal:</span> <span className="text-red-500">-{taxaCanal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Taxa do Canal:</span> <span className="text-destructive">-{taxaCanal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Frete:</span> <span>{(form.watch('frete') || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
               <div className="flex justify-between font-bold text-lg"><span >Valor Total:</span> <span>{valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
-              <div className="flex justify-between font-semibold text-green-600"><span>Lucro da Venda:</span> <span>{lucroTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
+              <div className="flex justify-between font-semibold text-success"><span>Lucro da Venda:</span> <span>{lucroTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
             </div>
           </div>
         </div>

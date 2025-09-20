@@ -81,7 +81,7 @@ const Despesas = () => {
                       {despesa.categoria === 'fixa' ? 'Fixa' : 'Variável'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right text-red-500">{formatCurrency(despesa.valor)}</TableCell>
+                  <TableCell className="text-right text-destructive">{formatCurrency(despesa.valor)}</TableCell>
                   <TableCell className="text-right">{formatDate(despesa.data)}</TableCell>
                 </TableRow>
               ))

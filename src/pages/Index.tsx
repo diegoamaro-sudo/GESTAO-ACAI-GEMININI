@@ -123,55 +123,55 @@ const Index = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Vendas Hoje</CardTitle>
-              <TrendingUp className="h-4 w-4 text-blue-500" />
+              <TrendingUp className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-blue-500">{formatCurrency(stats.salesToday)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-primary">{formatCurrency(stats.salesToday)}</div>}
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Lucro Hoje</CardTitle>
-              <DollarSign className="h-4 w-4 text-green-500" />
+              <DollarSign className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-green-500">{formatCurrency(stats.profitToday)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-success">{formatCurrency(stats.profitToday)}</div>}
             </CardContent>
           </Card>
            <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Despesas Hoje</CardTitle>
-              <MinusCircle className="h-4 w-4 text-red-500" />
+              <MinusCircle className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-red-500">{formatCurrency(stats.expensesToday)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-destructive">{formatCurrency(stats.expensesToday)}</div>}
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Vendas no Mês</CardTitle>
-              <TrendingUp className="h-4 w-4 text-blue-500" />
+              <TrendingUp className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-blue-500">{formatCurrency(stats.salesMonth)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-primary">{formatCurrency(stats.salesMonth)}</div>}
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Lucro no Mês</CardTitle>
-              <DollarSign className="h-4 w-4 text-green-500" />
+              <DollarSign className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-green-500">{formatCurrency(stats.profitMonth)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-success">{formatCurrency(stats.profitMonth)}</div>}
             </CardContent>
           </Card>
            <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Despesas no Mês</CardTitle>
-              <MinusCircle className="h-4 w-4 text-red-500" />
+              <MinusCircle className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-red-500">{formatCurrency(stats.expensesMonth)}</div>}
+              {loading ? <div className="h-8 w-24 animate-pulse bg-muted rounded"></div> : <div className="text-2xl font-bold text-destructive">{formatCurrency(stats.expensesMonth)}</div>}
             </CardContent>
           </Card>
         </div>

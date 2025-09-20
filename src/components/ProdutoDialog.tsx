@@ -164,7 +164,7 @@ export const ProdutoDialog = ({ open, onOpenChange, onSuccess, produto }: Produt
               )}
             />
             <div className="space-y-2 rounded-lg border p-4">
-              <div className="flex justify-between font-semibold text-green-600">
+              <div className="flex justify-between font-semibold text-success">
                 <span>Lucro:</span>
                 <span>{lucro.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
               </div>

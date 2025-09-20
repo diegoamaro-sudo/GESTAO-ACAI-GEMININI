@@ -46,8 +46,8 @@ const SalesChart = ({ data }: SalesChartProps) => {
               cursor={{ fill: 'hsl(var(--muted))' }}
               contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
             />
-            <Bar dataKey="vendas" fill="#3b82f6" name="Vendas" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="lucro" fill="#22c55e" name="Lucro" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="vendas" fill="hsl(var(--primary))" name="Vendas" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="lucro" fill="hsl(var(--success))" name="Lucro" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
