@@ -29,7 +29,7 @@ const ComposicaoProdutos = () => {
     if (error) {
       showError('Erro ao buscar fichas técnicas: ' + error.message);
     } else {
-      setComposicoes(data);
+      setComposicoes(data || []);
     }
     setLoading(false);
   };

@@ -64,7 +64,7 @@ const Produtos = () => {
     if (error) {
       showError('Erro ao buscar produtos: ' + error.message);
     } else {
-      setProdutos(data);
+      setProdutos(data || []);
     }
     setLoading(false);
   };

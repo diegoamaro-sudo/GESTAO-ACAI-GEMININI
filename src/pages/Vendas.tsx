@@ -34,7 +34,7 @@ const Vendas = () => {
       if (error) {
         console.error('Erro ao buscar vendas:', error);
       } else {
-        setVendas(data as Venda[]);
+        setVendas(data as Venda[] || []);
       }
       setLoading(false);
     };

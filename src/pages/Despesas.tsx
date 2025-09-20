@@ -34,7 +34,7 @@ const Despesas = () => {
       if (error) {
         console.error('Erro ao buscar despesas:', error);
       } else {
-        setDespesas(data);
+        setDespesas(data || []);
       }
       setLoading(false);
     };

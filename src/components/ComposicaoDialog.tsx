@@ -140,7 +140,7 @@ export const ComposicaoDialog = ({ open, onOpenChange, onSuccess, composicao }: 
                   <FormItem><FormLabel>Nome do Produto Final</FormLabel><FormControl><Input placeholder="Ex: Açaí 500ml com adicionais" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="imagem_url" render={({ field }) => (
-                  <FormItem><FormLabel>URL da Imagem (Opcional)</FormLabel><FormControl><Input placeholder="https://exemplo.com/imagem.png" {...field} /></FormControl><FormMessage /></FormMessage>
+                  <FormItem><FormLabel>URL da Imagem (Opcional)</FormLabel><FormControl><Input placeholder="https://exemplo.com/imagem.png" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
             </form>
