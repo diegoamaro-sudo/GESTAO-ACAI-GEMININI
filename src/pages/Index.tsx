@@ -7,9 +7,9 @@ import TopExpensesChart from "@/components/TopExpensesChart"; // Novo componente
 import TopProductsList from "@/components/TopProductsList"; // Novo componente
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import jsPDF from 'jspdf'; // Revertido para importação padrão
+import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { showError, showSuccess } from '@/utils/toast'; // Importar showSuccess e showError
+import { showError, showSuccess } from '@/utils/toast';
 
 const MetricCard = ({ title, value, subtext, icon: Icon, gradient }: { title: string, value: string, subtext: string, icon: React.ElementType, gradient: string }) => (
   <div className={`p-0.5 rounded-lg ${gradient}`}>
@@ -55,9 +55,9 @@ const fetchDashboardData = async () => {
 
   if (operationalExpensesError) throw new Error(operationalExpensesError.message);
 
-  const totalDespesasOperacionaisMes = operationalExpenses?.reduce((acc, d) => acc + d.valor, 0) || 0;
+  const totalOperationalExpensesMonth = operationalExpenses?.reduce((acc, d) => acc + d.valor, 0) || 0;
 
-  // Fetch TODAS as despesas pagas do mês (para o gráfico 'Onde você gasta mais')
+  // Fetch TODAS as despesas pagas do mês (para o gráfico 'Onde você gasta mais' E para a métrica total de despesas)
   const { data: allPaidExpensesMonth, error: allPaidExpensesError } = await supabase
     .from('despesas')
     .select('valor, tipos_despesa(nome, emoji)')
@@ -66,6 +66,10 @@ const fetchDashboardData = async () => {
     .lte('data', endOfMonth);
 
   if (allPaidExpensesError) throw new Error(allPaidExpensesError.message);
+
+  const totalAllPaidExpensesMonth = allPaidExpensesMonth?.reduce((acc, d) => acc + d.valor, 0) || 0;
+
+  console.log("Todas as Despesas Pagas do Mês (para o gráfico e métrica):", allPaidExpensesMonth); // Log de depuração
 
   const vendasHoje = vendas?.filter(v => v.created_at >= startOfDay) || [];
   const salesDay = vendasHoje.reduce((acc, v) => acc + v.valor_total, 0);
@@ -78,7 +82,7 @@ const fetchDashboardData = async () => {
   const profitDay = profitDayVendas; 
 
   // Lucro líquido do mês (lucro das vendas - despesas operacionais do mês)
-  const profitMonth = profitMonthVendas - totalDespesasOperacionaisMes;
+  const profitMonth = profitMonthVendas - totalOperationalExpensesMonth;
 
   const overallProfitMargin = salesMonth > 0 ? (profitMonth / salesMonth) * 100 : 0;
 
@@ -89,7 +93,7 @@ const fetchDashboardData = async () => {
     salesMonth,
     profitMonth,
     salesMonthCount: salesMonthCount || 0,
-    totalDespesasMes: totalDespesasOperacionaisMes, // Reflete apenas despesas operacionais
+    totalDespesasMes: totalAllPaidExpensesMonth, // AGORA INCLUI TODAS AS DESPESAS PAGAS (operacionais + custos/taxas de venda)
     overallProfitMargin,
   };
 
@@ -117,7 +121,7 @@ const fetchDashboardData = async () => {
   }, {} as Record<string, number>);
   const channelData = Object.entries(salesByChannel || {}).map(([name, value]) => ({ name, value }));
 
-  // Top Expenses Chart Data (agora inclui todas as despesas pagas)
+  // Top Expenses Chart Data (usa allPaidExpensesMonth)
   const expensesByType = allPaidExpensesMonth?.reduce((acc, despesa) => {
     const typeName = despesa.tipos_despesa?.nome || 'Outros';
     acc[typeName] = (acc[typeName] || 0) + despesa.valor;
