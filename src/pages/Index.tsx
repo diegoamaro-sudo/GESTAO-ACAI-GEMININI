@@ -28,9 +28,18 @@ const MetricCard = ({ title, value, subtext, icon: Icon, gradient }: { title: st
 
 const fetchDashboardData = async () => {
   const today = new Date();
-  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
-  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth(); // 0-indexed
+
+  // Para a coluna 'created_at' (timestamp with time zone no DB)
+  const startOfDayTimestamp = new Date(currentYear, currentMonth, today.getDate()).toISOString();
+  const startOfMonthTimestamp = new Date(currentYear, currentMonth, 1).toISOString();
+  const endOfMonthTimestamp = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999).toISOString(); // Garante o final do dia
+
+  // Para a coluna 'data' (date no DB)
+  const startOfMonthDateString = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
+  const endOfMonthDateString = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0];
+
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
   sevenDaysAgo.setHours(0, 0, 0, 0);
@@ -39,8 +48,8 @@ const fetchDashboardData = async () => {
   const { data: vendas, error: vendasError, count: salesMonthCount } = await supabase
     .from('vendas')
     .select('valor_total, lucro_total, created_at, canais_venda(nome), itens_venda(quantidade, produtos(nome))', { count: 'exact' })
-    .gte('created_at', startOfMonth)
-    .lte('created_at', endOfMonth);
+    .gte('created_at', startOfMonthTimestamp)
+    .lte('created_at', endOfMonthTimestamp);
 
   if (vendasError) throw new Error(vendasError.message);
 
@@ -50,8 +59,8 @@ const fetchDashboardData = async () => {
     .select('valor, tipos_despesa(nome, emoji)')
     .eq('status', 'paga')
     .is('venda_id', null) // Filtra apenas despesas não vinculadas a vendas
-    .gte('data', startOfMonth)
-    .lte('data', endOfMonth);
+    .gte('data', startOfMonthDateString) // Use date string
+    .lte('data', endOfMonthDateString); // Use date string
 
   if (operationalExpensesError) throw new Error(operationalExpensesError.message);
 
@@ -62,16 +71,18 @@ const fetchDashboardData = async () => {
     .from('despesas')
     .select('valor, descricao, tipos_despesa(nome, emoji), venda_id, vendas(canal_venda_id, canais_venda(nome))') // Adicionado 'descricao' e join aninhado
     .eq('status', 'paga')
-    .gte('data', startOfMonth)
-    .lte('data', endOfMonth);
+    .gte('data', startOfMonthDateString) // Use date string
+    .lte('data', endOfMonthDateString); // Use date string
 
   if (allPaidExpensesError) throw new Error(allPaidExpensesError.message);
+
+  console.log("DEBUG: allPaidExpensesMonth:", allPaidExpensesMonth); // Log de depuração
 
   const totalAllPaidExpensesMonth = allPaidExpensesMonth?.reduce((acc, d) => acc + d.valor, 0) || 0;
 
   console.log("Todas as Despesas Pagas do Mês (para o gráfico e métrica):", allPaidExpensesMonth); // Log de depuração
 
-  const vendasHoje = vendas?.filter(v => v.created_at >= startOfDay) || [];
+  const vendasHoje = vendas?.filter(v => v.created_at >= startOfDayTimestamp) || [];
   const salesDay = vendasHoje.reduce((acc, v) => acc + v.valor_total, 0);
   const profitDayVendas = vendasHoje.reduce((acc, v) => acc + v.lucro_total, 0) || 0; // Lucro bruto das vendas do dia
 
