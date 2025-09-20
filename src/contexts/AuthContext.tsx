@@ -41,25 +41,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     setLoading(true);
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchConfig(currentUser.id);
-      }
-      setLoading(false);
-    });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchConfig(currentUser.id);
-      } else {
-        setConfig(null);
+      try {
+        setSession(session);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          await fetchConfig(currentUser.id);
+        } else {
+          setConfig(null);
+        }
+      } catch (error) {
+        console.error("Erro durante a verificação de autenticação:", error);
+      } finally {
+        setLoading(false);
       }
     });
 
