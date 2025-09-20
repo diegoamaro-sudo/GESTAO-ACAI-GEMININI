@@ -40,24 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    const getSessionAndConfig = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser) {
-          await fetchConfig(currentUser.id);
-        }
-      } catch (error) {
-        console.error("Erro ao inicializar a sessão:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getSessionAndConfig();
-
+    setLoading(true);
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       const currentUser = session?.user ?? null;
@@ -67,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setConfig(null);
       }
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
