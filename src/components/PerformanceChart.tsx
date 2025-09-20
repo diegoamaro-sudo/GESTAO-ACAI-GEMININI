@@ -37,7 +37,9 @@ const PerformanceChart = ({ data }: PerformanceChartProps) => {
               <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value}`} />
               <Tooltip
                 cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '3 3' }}
-                contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', color: '#FFFFFF' }}
+                contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                labelStyle={{ color: '#FFFFFF' }} // Adicionado para o label
+                itemStyle={{ color: '#FFFFFF' }} // Adicionado para os itens
                 formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
               />
               <Area type="monotone" dataKey="vendas" name="Vendas" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#colorVendas)" />
