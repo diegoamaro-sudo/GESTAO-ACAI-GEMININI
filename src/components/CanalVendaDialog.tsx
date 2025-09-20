@@ -53,16 +53,18 @@ export const CanalVendaDialog = ({ open, onOpenChange, onSuccess, canal }: Canal
   });
 
   useEffect(() => {
-    if (canal) {
-      form.reset(canal);
-    } else {
-      form.reset({
-        nome: '',
-        taxa: 0,
-        icon: 'Store',
-      });
+    if (open) {
+      if (canal) {
+        form.reset(canal);
+      } else {
+        form.reset({
+          nome: '',
+          taxa: 0,
+          icon: 'Store',
+        });
+      }
     }
-  }, [canal, form]);
+  }, [canal, open, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user) return showError('Você precisa estar logado.');

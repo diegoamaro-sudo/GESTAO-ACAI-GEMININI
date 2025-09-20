@@ -51,15 +51,20 @@ const Configuracoes = () => {
   // Form for General Config
   const configForm = useForm<ConfiguracoesUsuario>({
     resolver: zodResolver(configFormSchema),
+    defaultValues: {
+      nome_loja: '',
+      limite_mei: 81000,
+    }
   });
 
   const fetchCanais = useCallback(async () => {
+    if (!user) return;
     setLoadingCanais(true);
-    const { data, error } = await supabase.from('canais_venda').select('*').order('nome');
+    const { data, error } = await supabase.from('canais_venda').select('*').eq('user_id', user.id).order('nome');
     if (error) showError('Erro ao buscar canais de venda.');
     else setCanais(data || []);
     setLoadingCanais(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchCanais();
@@ -67,7 +72,10 @@ const Configuracoes = () => {
 
   useEffect(() => {
     if (config) {
-      configForm.reset({ nome_loja: config.nome_loja, limite_mei: config.limite_mei });
+      configForm.reset({
+        nome_loja: config.nome_loja || '',
+        limite_mei: config.limite_mei || 81000,
+      });
       setLogoPreview(config.logo_url || null);
     }
   }, [config, configForm]);
@@ -136,7 +144,7 @@ const Configuracoes = () => {
     if (error) showError('Erro ao excluir canal: ' + error.message);
     else {
       showSuccess('Canal excluído com sucesso!');
-      setCanais(canais.filter(c => c.id !== canalToDelete.id));
+      fetchCanais();
     }
     setIsDeleteDialogOpen(false);
     setCanalToDelete(null);
@@ -172,7 +180,7 @@ const Configuracoes = () => {
               <div className="w-32 h-32 rounded-lg border bg-muted flex items-center justify-center">
                 {logoPreview ? <img src={logoPreview} alt="Prévia da logo" className="h-full w-full object-contain rounded-lg" /> : <ImageOff className="h-12 w-12 text-muted-foreground" />}
               </div>
-              <FormControl><Input type="file" accept="image/png" onChange={handleFileChange} className="text-sm" /></FormControl>
+              <FormControl><Input type="file" accept="image/png, image/jpeg" onChange={handleFileChange} className="text-sm" /></FormControl>
             </CardContent>
             <CardFooter className="border-t px-6 py-4"><Button onClick={onLogoSubmit} disabled={!logoFile || isSubmittingLogo} className="w-full">{isSubmittingLogo ? 'Enviando...' : 'Salvar Logo'}</Button></CardFooter>
           </Card>
@@ -184,7 +192,7 @@ const Configuracoes = () => {
             <Table>
               <TableHeader><TableRow><TableHead className="w-[64px]">Ícone</TableHead><TableHead>Nome</TableHead><TableHead className="text-right">Taxa (%)</TableHead><TableHead><span className="sr-only">Ações</span></TableHead></TableRow></TableHeader>
               <TableBody>
-                {loadingCanais ? (<TableRow><TableCell colSpan={4} className="text-center">Carregando...</TableCell></TableRow>) : canais.map(canal => (<TableRow key={canal.id}><TableCell>{iconMap[canal.icon]}</TableCell><TableCell className="font-medium">{canal.nome}</TableCell><TableCell className="text-right">{canal.taxa}%</TableCell><TableCell><DropdownMenu><DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Ações</DropdownMenuLabel><DropdownMenuItem onClick={() => handleEditCanal(canal)}>Editar</DropdownMenuItem><DropdownMenuItem onClick={() => handleDeleteCanal(canal)} className="text-destructive">Excluir</DropdownMenuItem></DropdownMenuContent></DropdownMenu></TableCell></TableRow>))}
+                {loadingCanais ? (<TableRow><TableCell colSpan={4} className="text-center">Carregando...</TableCell></TableRow>) : canais.length > 0 ? canais.map(canal => (<TableRow key={canal.id}><TableCell>{iconMap[canal.icon]}</TableCell><TableCell className="font-medium">{canal.nome}</TableCell><TableCell className="text-right">{canal.taxa}%</TableCell><TableCell className="text-right"><DropdownMenu><DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Ações</DropdownMenuLabel><DropdownMenuItem onClick={() => handleEditCanal(canal)}>Editar</DropdownMenuItem><DropdownMenuItem onClick={() => handleDeleteCanal(canal)} className="text-destructive">Excluir</DropdownMenuItem></DropdownMenuContent></DropdownMenu></TableCell></TableRow>)) : (<TableRow><TableCell colSpan={4} className="text-center">Nenhum canal de venda encontrado.</TableCell></TableRow>)}
               </TableBody>
             </Table>
           </CardContent>
@@ -192,6 +200,3 @@ const Configuracoes = () => {
       </div>
     </>
   );
-};
-
-export default Configuracoes;
