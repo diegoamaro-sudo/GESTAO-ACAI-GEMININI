@@ -40,22 +40,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const setData = async (session: Session | null) => {
+      setSession(session);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        await fetchConfig(currentUser.id);
+      } else {
+        setConfig(null);
+      }
+    };
+
+    const checkInitialSession = async () => {
       try {
-        setSession(session);
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser) {
-          await fetchConfig(currentUser.id);
-        } else {
-          setConfig(null);
-        }
+        const { data: { session } } = await supabase.auth.getSession();
+        await setData(session);
       } catch (error) {
-        console.error("Erro durante a verificação de autenticação:", error);
+        console.error("Erro ao verificar a sessão inicial:", error);
       } finally {
         setLoading(false);
       }
+    };
+
+    checkInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      await setData(session);
     });
 
     return () => {
